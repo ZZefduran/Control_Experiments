@@ -1,6 +1,6 @@
 # from ka3000_serial import ka3000
 import time
-from motor_power import tongui
+# from motor_power import tongui
 
 
 # korad = ka3000()
@@ -22,9 +22,11 @@ from motor_power import tongui
 #     time.sleep(1)
     
 
+# hello
 
 
-supply = tongui()
+
+# supply = tongui()
 
 # # Perform operations on the power supply
 # supply.setOutputOn()
@@ -34,11 +36,11 @@ supply = tongui()
 # # Close the connection
 # supply.close()
 
-supply.setOutputOn()
-voltage = supply.getCurr()
-print(f'the voltage is:{voltage}')
-time.sleep(5)
-supply.setOutputOff()
+# supply.setOutputOn()
+# voltage = supply.getCurr()
+# print(f'the voltage is:{voltage}')
+# time.sleep(5)
+# supply.setOutputOff()
 
 # for current in [9,10,11, 12]:
 #     supply.setCurrent(current)

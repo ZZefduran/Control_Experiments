@@ -29,7 +29,7 @@ class tongui(object):
         time.sleep(1.5)
     
     def getVolt(self):
-        # gets the current voltage reading
+        # gets the current voltage reading while the supplier is on
         v = self.ps.query('MEAS:VOLT?')
         return v
 
@@ -39,11 +39,9 @@ class tongui(object):
         time.sleep(1.5)
     
     def getCurr(self):
-        
+        # gets the current current reading while the supplier is on
         c = self.ps.query('MEAS:CURR?')
-        c = np.float16(c[:c.find('  /n')])
-
-
+        # c = np.float16(c[:c.find('  /n')])
         # print(c)
         return c
     

@@ -1,11 +1,11 @@
-# from ka3000_serial import ka3000
+from ka3000_serial import ka3000
 import time
 # from motor_power import tongui
 
 
-# korad = ka3000()
-# mot_supply = tongui()
-# f=0
+korad = ka3000()
+# # # mot_supply = tongui()
+# # # f=0
 
 # for voltage in [26,25,24]:
 #     korad.setVolt(voltage)
@@ -18,19 +18,20 @@ import time
 # print(f'the current is: {current}')
 
 # for current in [0.2,0.3,0.4]:
-#     korad.setCurrent(current)
-#     time.sleep(1)
+# current = 0.5
+# korad.setCurrent(current)
+# time.sleep(1)
     
 
-# hello
+# hellowwww
 
 
-
+# from motor_power import tongui
 # supply = tongui()
-
+# import time
 # # Perform operations on the power supply
 # supply.setOutputOn()
-# supply.setVolt(46)
+# supply.setVolt(45)
 # time.sleep(3)
 # supply.setOutputOff()
 # # Close the connection
@@ -49,7 +50,7 @@ import time
 # supply.setCurrent(2.5)
 # print(f'the current is:{3}')
 
-# # script for checking connected ports
+# script for checking connected ports
 # import pyvisa
 # def list_visa_resources():
 #     rm = pyvisa.ResourceManager()
@@ -64,6 +65,20 @@ import time
 
 
 
+# import serial
+
+# try:
+#     # Open the serial port
+#     ser = serial.Serial('/dev/ttyUSB0', baudrate=9600, timeout=1)  # Adjust baudrate and timeout as needed
+
+#     # Do something with the serial port
+#     ser.write(b'Hello, serial port!')
+
+#     # Close the serial port when done
+#     ser.close()
+
+# except serial.SerialException as e:
+#     print("Error opening serial port:", e)
 
 
 

@@ -4,8 +4,8 @@ import math
 import sys
 from motor_power import tongui
 
-class MotorController2:
-    def __init__(self, voltage, baud_rate, control_mode, target_frequency, loop_duration, motor_name=None):
+class MotorController:
+    def __init__(self, voltage, baud_rate, control_mode, target_frequency, loop_duration, kp, kd, ki, ff, motor_name):
         self.supply = tongui()
         self.voltage = voltage
         self.candle = pyCandle.Candle(baud_rate, True)
@@ -13,7 +13,31 @@ class MotorController2:
         self.target_frequency = target_frequency
         self.loop_duration = loop_duration
         self.motor_name = motor_name
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.ff = ff
         self.ids = []
+
+    def set_gains(self):
+        if self.control_mode == pyCandle.IMPEDANCE:
+            print('Control mode is impedance')
+            for md in self.candle.md80s:
+                self.candle.controlMd80Mode(md.getId(), self.control_mode)
+                md.setMaxTorque(80)
+                md.setImpedanceControllerParams(self.kp, self.kd)
+        elif self.control_mode == pyCandle.VELOCITY_PID:
+            print('Control mode is velocity')
+            for md in self.candle.md80s:
+                self.candle.controlMd80Mode(md.getId(), self.control_mode)
+                md.setMaxTorque(80)
+                md.setVelocityControllerParams(self.kp, self.ki, self.kd, self.ff)
+        elif self.control_mode == pyCandle.POSITION_PID:
+            print('Control mode is position')
+            for md in self.candle.md80s:
+                self.candle.controlMd80Mode(md.getId(), self.control_mode)
+                md.setMaxTorque(80)
+                md.setPositionControllerParams(self.kp, self.ki, self.kd, self.ff)
 
     def setup_power_supply(self):
         self.supply.setOutputOn()
@@ -34,6 +58,7 @@ class MotorController2:
             self.candle.controlMd80Mode(drive_id, self.control_mode)
             self.candle.controlMd80Enable(drive_id, True)
         print(f"Motor initialized with ID: {self.ids[0]}")
+        self.set_gains()
         return True
 
     def move_motor_sine_wave(self):
@@ -63,35 +88,32 @@ class MotorController2:
             raise Exception("No drives initialized. Please call initialize_drives first.")
 
     def const_torque(self, tor):
-        t = 0.0
-        dt = self.target_frequency
+        # t = 0.0
+        # dt = self.target_frequency
+        # self.candle.begin()
+        # for md in self.candle.md80s:
+        #     self.candle.controlMd80Mode(md.getId(), pyCandle.TORQUE_PID)
+        #     md.setMaxTorque(80)
+        # for _ in range(self.loop_duration):
+        #     t += dt
+        #     for md in self.candle.md80s:
+        #         md.setTargetTorque(tor)
+        #     state = self.get_state()
+        #     time.sleep(0.01)
+        # self.candle.end()
         self.candle.begin()
         for md in self.candle.md80s:
-            self.candle.controlMd80Mode(md.getId(), pyCandle.TORQUE_PID)
-            md.setMaxTorque(80)
-        for _ in range(self.loop_duration):
-            t += dt
-            for md in self.candle.md80s:
-                md.setTargetTorque(tor)
-            state = self.get_state()
-            time.sleep(0.01)
+            while True:
+                md.setTorque(tor)
+                state = self.get_state()
+                time.sleep(0.1)
         self.candle.end()
         print(f"Setting constant torque: {tor}")
 
     def const_vel(self, vel):
-        t = 0.0
-        dt = self.target_frequency
-        ki = 0.02
-        kp = 100.0
-        kd = 5.0
         self.candle.begin()
         for md in self.candle.md80s:
-            self.candle.controlMd80Mode(md.getId(), pyCandle.VELOCITY_PID)
-            md.setMaxTorque(80)
-            md.setVelocityControllerParams(kp, ki, kd, 0.0)
-        for _ in range(self.loop_duration):
-            t += dt
-            for md in self.candle.md80s:
+            while True:
                 md.setTargetVelocity(vel)
                 state = self.get_state()
                 time.sleep(0.01)
@@ -99,25 +121,15 @@ class MotorController2:
         print(f"Setting constant velocity: {vel}")
 
     def const_pos(self, pos):
-        t = 0.0
-        dt = self.target_frequency
-        ki = 0.02
-        kp = 100.0
-        kd = 5.0
-        # self.candle.begin()
-        for md in self.candle.md80s:
-            self.candle.controlMd80Mode(md.getId(), pyCandle.POSITION_PID)
-            md.setMaxTorque(80)
-            md.setPositionControllerParams(kp, ki, kd, 0.0)
         self.candle.begin()
-        for _ in range(self.loop_duration):
-            t += dt
-            for md in self.candle.md80s:
+        for md in self.candle.md80s:
+            while True:
                 md.setTargetPosition(pos)
                 state = self.get_state()
                 time.sleep(0.01)
         self.candle.end()
         print(f"Setting constant Position: {pos}")
+
     def shutdown(self):
         self.supply.setOutputOff()
         print("Shutdown completed successfully.")
@@ -128,28 +140,29 @@ class MotorController2:
             self.move_motor_sine_wave()
         self.shutdown()
 
-if __name__ == "__main__":
-    voltage = 48
-    baud_rate = pyCandle.CAN_BAUD_2M
-    control_mode = pyCandle.IMPEDANCE
-    target_frequency = 0.02
-    loop_duration = 1000
-    motor_name = 207
+# if __name__ == "__main__":
+#     voltage = 48
+#     baud_rate = pyCandle.CAN_BAUD_2M
+#     control_mode = pyCandle.IMPEDANCE
+#     target_frequency = 0.02
+#     loop_duration = 1000
+#     (kp, kd, ki, ff) = (100.0, 5.0, 0.02, 0.0)
+#     motor_name = 207
 
-    motor_controller = MotorController2(voltage, baud_rate, control_mode, target_frequency, loop_duration, motor_name)
+#     motor_controller = MotorController(voltage, baud_rate, control_mode, target_frequency, loop_duration, kp, kd, ki, ff, motor_name)
     
-    
-    
-######### sin position test ###########
+    ######### sin position test ###########
     # motor_controller.run()
 
-
-
-######### const velocity test ###########
+    ######## const velocity test ###########
     # motor_controller.setup_power_supply()
     # time.sleep(0.5)
     # if motor_controller.initialize_drives():
-    #     motor_controller.const_vel(2.0)  # Set a small velocity
+    #     # motor_controller.const_vel(2.0)
+    #     motor_controller.const_torque(20)  # Set a small velocity
     #     # motor_controller.const_pos(2.0)
     # # Shutdown the motor controller
     # motor_controller.shutdown()
+
+
+    # ff

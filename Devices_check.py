@@ -4,7 +4,7 @@ import time
 
 
 korad = ka3000()
-# # # mot_supply = tongui()
+# # mot_supply = tongui()
 # # # f=0
 
 # for voltage in [26,25,24]:
@@ -19,7 +19,7 @@ korad = ka3000()
 
 # for current in [0.2,0.3,0.4]:
 # current = 0.5
-# korad.setCurrent(current)
+korad.setCurrent(2)
 # time.sleep(1)
     
 

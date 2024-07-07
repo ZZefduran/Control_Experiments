@@ -372,16 +372,12 @@ class ExperimentMaster():
             self.stop=True
 
     def save_step_data(self,i):
-        # print('step:', i)
-        rclpy.spin_once(self.motorsubscriber)
-        pos, vel, tor = self.motorsubscriber.get_state()
+        pos, vel, tor = self.motor_pos, self.motor_vel, self.motor_tor
         if pos is not None:
             if vel is not None:
                 if tor is not None:
                     
                     self.joint_pos.append(pos)  # Motor
-                    if self.cfg.current_bias:
-                        tor = tor - self.motor.torque_bias
                     self.joint_tor.append(tor)
                     self.joint_vel.append(vel)
                     self.motor_tor.append(self.move_tor) # Target

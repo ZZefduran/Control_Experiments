@@ -70,7 +70,7 @@ class tongui(object):
 
 # supply = tongui()
 # supply.setOutputOn()
-# supply.setVolt(48)
+# supply.setVolt(46)
 # time.sleep(10)
 # supply.setOutputOff()
 

@@ -134,24 +134,31 @@ class MotorController:
         motor_currents = []
         motor_torques = []
         futek_torques = []
+        desired_torque = []
+        
         for tor in torque_list:
-            for md in self.candle.md80s:
-                md.setTorque(tor)
-            # Wait for the motor torque to stabilize at the desired value
-            # while True:
+            start_time = time.time()
+            while time.time() - start_time < 1:  # Run for X seconds
+                for md in self.candle.md80s:
+                    print(f'timetime:{start_time}')
+                    md.setTorque(tor)
+                
                 motor_torque = self.candle.md80s[0].getTorque()
-                # if abs(motor_torque - tor) < 0.1:  # Adjust tolerance as needed
-                #     break
-                time.sleep(3)
-
-            motor_current = self.supply.getCurr()
-            futek_torque = futek_client.get_torque()
-            motor_currents.append(float(motor_current))
-            motor_torques.append(motor_torque)
-            futek_torques.append(futek_torque)
-            print(f"Desired Torque: {tor} | Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
+                motor_current = self.supply.getCurr()
+                futek_torque = futek_client.get_torque()
+                
+                motor_currents.append(float(motor_current))
+                motor_torques.append(motor_torque)
+                futek_torques.append(futek_torque)
+                desired_torque.append(tor)
+                
+                print(f"Desired Torque: {tor} | Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
+                
+                time.sleep(0.1)  # Wait for 100 milliseconds between measurements
+            
         self.candle.end()
-        return motor_currents, motor_torques, futek_torques
+        return motor_currents, motor_torques, futek_torques , desired_torque
+
 
 
 

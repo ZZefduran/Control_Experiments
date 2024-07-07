@@ -7,10 +7,10 @@ class koradUdpComm(object):
     def __init__(self):
         # Try to connect to /dev/ttyACM0
         try:
-            self.port = serial.Serial("/dev/ttyACM0", baudrate=9600, timeout=1)
-            print("Connected to /dev/ttyACM0")
+            self.port = serial.Serial("/dev/serial/by-id/usb-Nuvoton_USB_Virtual_COM_001826960458-if00", baudrate=9600, timeout=1)
+            print("Connected to /dev/ttyACM1")
         except serial.SerialException as e:
-            raise RuntimeError(f"Could not connect to /dev/ttyACM0: {e}")
+            raise RuntimeError(f"Could not connect to /dev/ttyACM1: {e}")
 
     def close(self):
         # Close the serial port
@@ -93,6 +93,7 @@ class ka3000(object):
 
 # if __name__ == "__main__":
 #     korad = ka3000()
-#     for voltage in [26, 25, 24]:
+#     for voltage in [26, 25, 22]:
+#         korad.setOutput(0)
 #         korad.setVolt(voltage)
-#         time.sleep(1)
+# #         time.sleep(1)

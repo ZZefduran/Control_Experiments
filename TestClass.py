@@ -24,19 +24,19 @@ class MotorController:
             print('Control mode is impedance')
             for md in self.candle.md80s:
                 self.candle.controlMd80Mode(md.getId(), self.control_mode)
-                md.setMaxTorque(80)
+                md.setMaxTorque(100)
                 md.setImpedanceControllerParams(self.kp, self.kd)
         elif self.control_mode == pyCandle.VELOCITY_PID:
             print('Control mode is velocity')
             for md in self.candle.md80s:
                 self.candle.controlMd80Mode(md.getId(), self.control_mode)
-                md.setMaxTorque(80)
+                md.setMaxTorque(100)
                 md.setVelocityControllerParams(self.kp, self.ki, self.kd, self.ff)
         elif self.control_mode == pyCandle.POSITION_PID:
             print('Control mode is position')
             for md in self.candle.md80s:
                 self.candle.controlMd80Mode(md.getId(), self.control_mode)
-                md.setMaxTorque(80)
+                md.setMaxTorque(100)
                 md.setPositionControllerParams(self.kp, self.ki, self.kd, self.ff)
 
     def setup_power_supply(self):
@@ -88,19 +88,6 @@ class MotorController:
             raise Exception("No drives initialized. Please call initialize_drives first.")
 
     def const_torque(self, tor):
-        # t = 0.0
-        # dt = self.target_frequency
-        # self.candle.begin()
-        # for md in self.candle.md80s:
-        #     self.candle.controlMd80Mode(md.getId(), pyCandle.TORQUE_PID)
-        #     md.setMaxTorque(80)
-        # for _ in range(self.loop_duration):
-        #     t += dt
-        #     for md in self.candle.md80s:
-        #         md.setTargetTorque(tor)
-        #     state = self.get_state()
-        #     time.sleep(0.01)
-        # self.candle.end()
         self.candle.begin()
         for md in self.candle.md80s:
             while True:
@@ -139,6 +126,35 @@ class MotorController:
         if self.initialize_drives():
             self.move_motor_sine_wave()
         self.shutdown()
+
+
+
+    def Ktau_experiment(self, torque_list, futek_client):
+        self.candle.begin()
+        motor_currents = []
+        motor_torques = []
+        futek_torques = []
+        for tor in torque_list:
+            for md in self.candle.md80s:
+                md.setTorque(tor)
+            # Wait for the motor torque to stabilize at the desired value
+            # while True:
+                motor_torque = self.candle.md80s[0].getTorque()
+                # if abs(motor_torque - tor) < 0.1:  # Adjust tolerance as needed
+                #     break
+                time.sleep(3)
+
+            motor_current = self.supply.getCurr()
+            futek_torque = futek_client.get_torque()
+            motor_currents.append(float(motor_current))
+            motor_torques.append(motor_torque)
+            futek_torques.append(futek_torque)
+            print(f"Desired Torque: {tor} | Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
+        self.candle.end()
+        return motor_currents, motor_torques, futek_torques
+
+
+
 
 # if __name__ == "__main__":
 #     voltage = 48

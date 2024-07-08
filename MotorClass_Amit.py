@@ -5,7 +5,9 @@ import sys
 from motor_power import tongui
 
 class MotorController:
-    def __init__(self, voltage, baud_rate, control_mode, target_frequency, loop_duration, kp, kd, ki, ff, motor_name):
+    def __init__(self, voltage, baud_rate, control_mode, 
+                 target_frequency, loop_duration, kp, kd, ki, ff, 
+                 motor_name):
         self.supply = tongui()
         self.voltage = voltage
         self.candle = pyCandle.Candle(baud_rate, True)
@@ -130,7 +132,6 @@ class MotorController:
 
     def Ktau_experiment(self, torque_list, futek_client):
         self.candle.begin()
-        motor_currents = []
         motor_torques = []
         futek_torques = []
         desired_torques = []
@@ -147,6 +148,7 @@ class MotorController:
 
         for tor in torque_list:
             # Ramp up to the desired torque over 2 seconds
+            time.sleep(1)
             start_time = time.time()
             while time.time() - start_time < 2:
                 for md in self.candle.md80s:
@@ -158,7 +160,6 @@ class MotorController:
                 motor_current = self.supply.getCurr()
                 futek_torque = futek_client.get_torque()
                 
-                motor_currents.append(float(motor_current))
                 motor_torques.append(motor_torque)
                 futek_torques.append(futek_torque)
                 desired_torques.append(ramp_torque)
@@ -179,7 +180,6 @@ class MotorController:
                 motor_current = self.supply.getCurr()
                 futek_torque = futek_client.get_torque()
                 
-                motor_currents.append(float(motor_current))
                 motor_torques.append(motor_torque)
                 futek_torques.append(futek_torque)
                 desired_torques.append(tor)
@@ -209,7 +209,6 @@ class MotorController:
                 motor_current = self.supply.getCurr()
                 futek_torque = futek_client.get_torque()
                 
-                motor_currents.append(float(motor_current))
                 motor_torques.append(motor_torque)
                 futek_torques.append(futek_torque)
                 desired_torques.append(ramp_torque)
@@ -222,7 +221,7 @@ class MotorController:
                     
 
         self.candle.end()
-        return motor_currents, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau
+        return  motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau
 
 
 

@@ -1,9 +1,11 @@
 from ka3000_serial import ka3000
+import pyCandle
+
 import time
 # from motor_power import tongui
 
 
-korad = ka3000()
+# korad = ka3000()
 # # mot_supply = tongui()
 # # # f=0
 
@@ -19,7 +21,7 @@ korad = ka3000()
 
 # for current in [0.2,0.3,0.4]:
 # current = 0.5
-korad.setCurrent(2)
+# korad.setCurrent(2)
 # time.sleep(1)
     
 
@@ -62,6 +64,11 @@ korad.setCurrent(2)
 # for port in available_ports:
 #     print(port)
 
+
+
+
+candle = pyCandle()
+print(f'Ktau is :{candle.md}')
 
 
 

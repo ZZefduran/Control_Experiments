@@ -5,7 +5,9 @@ import sys
 from motor_power import tongui
 
 class MotorController:
-    def __init__(self, voltage, baud_rate, control_mode, target_frequency, loop_duration, kp, kd, ki, ff, motor_name):
+    def __init__(self, voltage, baud_rate, control_mode, 
+                 target_frequency, loop_duration, kp, kd, ki, ff, 
+                 motor_name):
         self.supply = tongui()
         self.voltage = voltage
         self.candle = pyCandle.Candle(baud_rate, True)

@@ -4,10 +4,13 @@ import plotly.graph_objs as go
 import plotly.offline as pyo
 import numpy as np
 
-from motor_power import tongui
+# from motor_power import tongui
 from Futek import FutekClient
-from TestClass import MotorController  # Ensure this file is named MotorController.py
 from ka3000_serial import ka3000
+
+# Import custom classes
+from TestClass import MotorController  # Ensure this file is named MotorController.py
+from TestClass import KtauExperiment
 
 # Experiment parameters
 voltage = 48
@@ -19,7 +22,7 @@ loop_duration = 1000
 motor_name = 207
 SERVER_IP = "192.168.31.50"
 PORT = 1220
-torque_list = [i for i in range(0, 90, 10)]  # Desired torques in arbitrary units
+torque_list = [i for i in range(0, 30, 10)]  # Desired torques in arbitrary units
 
 # Initialize the motor controller
 motor_controller = MotorController(voltage, baud_rate, control_mode, target_frequency, loop_duration, kp, kd, ki, ff, motor_name)
@@ -31,15 +34,13 @@ futek_client = FutekClient()
 korad = ka3000()
 korad.setOutput(1)
 
-# Setup power power supplies 
+# Setup power supplies
 motor_controller.setup_power_supply()
-# korad.setCurrent(4.5)
-
-# print(f'the motor volage is: {Mpower.getVolt()}',f'the brake current is: {korad.measureCurrent()}')
 time.sleep(0.5)
 
 if motor_controller.initialize_drives():
-    motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau = motor_controller.Ktau_experiment(torque_list, futek_client)
+    ktau_experiment = KtauExperiment(motor_controller)
+    motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau = ktau_experiment.Ktau_experiment(torque_list, futek_client)
 
     # Calculate the linear approximation for motor torque vs current
     m, b = np.polyfit(currents_for_Ktau, Torques_for_Ktau, 1)

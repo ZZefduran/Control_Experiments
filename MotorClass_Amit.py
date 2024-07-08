@@ -128,21 +128,32 @@ class MotorController:
         self.shutdown()
 
 
-
     def Ktau_experiment(self, torque_list, futek_client):
         self.candle.begin()
         motor_currents = []
         motor_torques = []
         futek_torques = []
-        desired_torque = []
+        desired_torques = []
+        time_values = []  # List to store time values
+        currents_for_Ktau = []
+        Torques_for_Ktau = []
+        futek_for_Ktau = []
+        current_torque_const = 0.0859
+        GR = 64
+        I = 0
         
+        dt = 0.01  # Time step in seconds (10 milliseconds)
+        t = 0  # Initialize time counter
+
         for tor in torque_list:
+            # Ramp up to the desired torque over 2 seconds
             start_time = time.time()
-            while time.time() - start_time < 1:  # Run for X seconds
+            while time.time() - start_time < 2:
                 for md in self.candle.md80s:
-                    print(f'timetime:{start_time}')
-                    md.setTorque(tor)
-                
+                    current_time = time.time() - start_time
+                    ramp_torque = tor * (current_time / 2)  # Linearly increase torque
+                    md.setTorque(ramp_torque)
+                    
                 motor_torque = self.candle.md80s[0].getTorque()
                 motor_current = self.supply.getCurr()
                 futek_torque = futek_client.get_torque()
@@ -150,14 +161,68 @@ class MotorController:
                 motor_currents.append(float(motor_current))
                 motor_torques.append(motor_torque)
                 futek_torques.append(futek_torque)
-                desired_torque.append(tor)
+                desired_torques.append(ramp_torque)
+                time_values.append(t)  # Record the current time
                 
-                print(f"Desired Torque: {tor} | Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
+                print(f"Ramping Up - Desired Torque: {ramp_torque} | Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
                 
-                time.sleep(0.1)  # Wait for 100 milliseconds between measurements
-            
+                time.sleep(dt)  # Wait for 10 milliseconds between measurements
+                t += dt  # Increment the time counter
+
+            # Hold the desired torque for 3 seconds
+            start_time = time.time()
+            while time.time() - start_time < 3:
+                for md in self.candle.md80s:
+                    md.setTorque(tor)
+                    
+                motor_torque = self.candle.md80s[0].getTorque()
+                motor_current = self.supply.getCurr()
+                futek_torque = futek_client.get_torque()
+                
+                motor_currents.append(float(motor_current))
+                motor_torques.append(motor_torque)
+                futek_torques.append(futek_torque)
+                desired_torques.append(tor)
+                time_values.append(t)  # Record the current time
+                
+                print(f"Holding - Desired Torque: {tor} | Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
+                
+                time.sleep(dt)  # Wait for 10 milliseconds between measurements
+                t += dt  # Increment the time counter
+
+                if time.time() - start_time >= 1.47 and time.time() - start_time <= 1.53:
+                    I = motor_torque/(GR*current_torque_const)  
+                    currents_for_Ktau.append(I)  
+                    Torques_for_Ktau.append(motor_torque)
+                    futek_for_Ktau.append(futek_torque)
+
+
+            # Ramp down to zero torque over 2 seconds
+            start_time = time.time()
+            while time.time() - start_time < 2:
+                for md in self.candle.md80s:
+                    current_time = time.time() - start_time
+                    ramp_torque = tor * (1 - (current_time / 2))  # Linearly decrease torque
+                    md.setTorque(ramp_torque)
+                    
+                motor_torque = self.candle.md80s[0].getTorque()
+                motor_current = self.supply.getCurr()
+                futek_torque = futek_client.get_torque()
+                
+                motor_currents.append(float(motor_current))
+                motor_torques.append(motor_torque)
+                futek_torques.append(futek_torque)
+                desired_torques.append(ramp_torque)
+                time_values.append(t)  # Record the current time
+                
+                print(f"Ramping Down - Desired Torque: {ramp_torque} | Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
+                
+                time.sleep(dt)  # Wait for 10 milliseconds between measurements
+                t += dt  # Increment the time counter
+                    
+
         self.candle.end()
-        return motor_currents, motor_torques, futek_torques , desired_torque
+        return motor_currents, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau
 
 
 

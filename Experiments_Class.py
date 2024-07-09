@@ -1,3 +1,4 @@
+import os
 import time
 import pyCandle
 import numpy as np
@@ -5,6 +6,8 @@ import math
 from motor_power import tongui
 import plotly.graph_objs as go
 import plotly.offline as pyo
+import pandas as pd
+from datetime import datetime
 
 class MotorController:
     def __init__(self, voltage, baud_rate, control_mode, 
@@ -28,19 +31,19 @@ class MotorController:
             print('Control mode is impedance')
             for md in self.candle.md80s:
                 self.candle.controlMd80Mode(md.getId(), self.control_mode)
-                md.setMaxTorque(100)
+                md.setMaxTorque(150)
                 md.setImpedanceControllerParams(self.kp, self.kd)
         elif self.control_mode == pyCandle.VELOCITY_PID:
             print('Control mode is velocity')
             for md in self.candle.md80s:
                 self.candle.controlMd80Mode(md.getId(), self.control_mode)
-                md.setMaxTorque(100)
+                md.setMaxTorque(150)
                 md.setVelocityControllerParams(self.kp, self.ki, self.kd, self.ff)
         elif self.control_mode == pyCandle.POSITION_PID:
             print('Control mode is position')
             for md in self.candle.md80s:
                 self.candle.controlMd80Mode(md.getId(), self.control_mode)
-                md.setMaxTorque(100)
+                md.setMaxTorque(150)
                 md.setPositionControllerParams(self.kp, self.ki, self.kd, self.ff)
 
     def setup_power_supply(self):
@@ -80,8 +83,6 @@ class MotorController:
     def shutdown(self):
         self.supply.setOutputOff()
         print("Shutdown completed successfully.")
-
-
 
 
 class CheckTests:
@@ -139,10 +140,8 @@ class CheckTests:
         self.motor_controller.shutdown()
 
 
-
-
 class KtauExperiment:
-    def __init__(self, motor_controller,motor_gear_ratio,motor_torque_constant):
+    def __init__(self, motor_controller, motor_gear_ratio, motor_torque_constant):
         self.motor_controller = motor_controller
         self.motor_gear_ratio = motor_gear_ratio
         self.motor_torque_constant = motor_torque_constant
@@ -159,7 +158,6 @@ class KtauExperiment:
 
         print(f"Holding - Desired Torque: {torque} | Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
 
-
     def ramp_up(self, torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau):
         t = time_values[-1] if time_values else 0  # Start from the last time value if available
         dt = 0.01  # Time step in seconds (10 milliseconds)
@@ -167,10 +165,10 @@ class KtauExperiment:
         self.motor_controller.candle.begin()
         
         start_time = time.time()
-        while time.time() - start_time < 2:
+        while time.time() - start_time < 3:
             for md in self.motor_controller.candle.md80s:
                 current_time = time.time() - start_time
-                ramp_torque = torque * (current_time / 2)  # Linearly increase torque
+                ramp_torque = torque * (current_time / 3)  # Linearly increase torque
                 md.setTorque(ramp_torque)
                 self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, t)
                 # print(f'Ramping Down - Desired Torque: {ramp_torque}')
@@ -216,10 +214,10 @@ class KtauExperiment:
         dt = 0.01  # Time step in seconds (10 milliseconds)
 
         start_time = time.time()
-        while time.time() - start_time < 2:
+        while time.time() - start_time < 3:
             for md in self.motor_controller.candle.md80s:
                 current_time = time.time() - start_time
-                ramp_torque = torque * (1 - (current_time / 2))  # Linearly decrease torque
+                ramp_torque = torque * (1 - (current_time / 3))  # Linearly decrease torque
                 md.setTorque(ramp_torque)
                 self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, t)
 
@@ -230,10 +228,10 @@ class KtauExperiment:
 
         return t
     
-    def calculate_linear_fit(self,x,y):
-        m,b = np.polyfit(x,y,1)
-        fit_line = [m*xi + b for xi in x]
-        return fit_line,m,b
+    def calculate_linear_fit(self, x, y):
+        m, b = np.polyfit(x, y, 1)
+        fit_line = [m * xi + b for xi in x]
+        return fit_line, m, b
     
     def run_experiment(self, torque_list, futek_client):
         motor_torques = []
@@ -248,10 +246,44 @@ class KtauExperiment:
             t = self.ramp_up(torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau)
             t = self.hold_torque(torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau)
             t = self.ramp_down(torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau)
-
+            time.sleep(2)
         self.motor_controller.candle.end()
         return motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau
-    
+
+    def save_data_and_plots(self, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, new_Ktau):
+        # Pad lists to make them the same length
+        max_len = max(len(motor_torques), len(futek_torques), len(desired_torques), len(time_values), len(currents_for_Ktau), len(Torques_for_Ktau), len(futek_for_Ktau))
+        motor_torques += [None] * (max_len - len(motor_torques))
+        futek_torques += [None] * (max_len - len(futek_torques))
+        desired_torques += [None] * (max_len - len(desired_torques))
+        time_values += [None] * (max_len - len(time_values))
+        currents_for_Ktau += [None] * (max_len - len(currents_for_Ktau))
+        Torques_for_Ktau += [None] * (max_len - len(Torques_for_Ktau))
+        futek_for_Ktau += [None] * (max_len - len(futek_for_Ktau))
+
+        # Create a new directory with the current date and time
+        current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        directory = f'/home/zzefduran/code/newBenchTest/Control_Experiments/Ktau_experiments/{current_time}'
+        os.makedirs(directory, exist_ok=True)
+
+        # Save the data to a CSV file
+        data = {
+            'Time(s)': time_values,
+            'MotorTorque(Nm)': motor_torques,
+            'FutekTorque(Nm)': futek_torques,
+            'DesiredTorque(Nm)': desired_torques,
+            'MotorCurrent(A)': currents_for_Ktau,
+            'TorqueforKtau(Nm)': Torques_for_Ktau,
+            'FutekforKtau(Nm)': futek_for_Ktau
+        }
+        df = pd.DataFrame(data)
+        df.to_csv(os.path.join(directory, 'experiment_data.csv'), index=False)
+
+        # Save the plots to HTML files
+        pyo.plot(self.fig1, filename=os.path.join(directory, 'torque_comparison.html'), auto_open=False)
+        pyo.plot(self.fig2, filename=os.path.join(directory, 'torque_vs_current.html'), auto_open=False)
+
+        print(f"Data and plots saved in {directory}")
 
     def run_and_plot_experiment(self, torque_list, futek_client):
         if not self.motor_controller.initialize_drives():
@@ -260,10 +292,10 @@ class KtauExperiment:
 
         motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau = self.run_experiment(torque_list, futek_client)
 
-        futek_fit_line, m_futek, b_futek = self.calculate_linear_fit(currents_for_Ktau,Torques_for_Ktau)
-        motor_fit_line, m_motor, b_motor = self.calculate_linear_fit(currents_for_Ktau,Torques_for_Ktau)
+        futek_fit_line, m_futek, b_futek = self.calculate_linear_fit(currents_for_Ktau, futek_for_Ktau)
+        motor_fit_line, m_motor, b_motor = self.calculate_linear_fit(currents_for_Ktau, Torques_for_Ktau)
 
-        new_Ktau = self.motor_torque_constant*(m_futek / m_motor)
+        new_Ktau = self.motor_torque_constant * (m_futek / m_motor)
 
         # Plot the results
         trace1 = go.Scatter(
@@ -281,7 +313,7 @@ class KtauExperiment:
         )
 
         trace3 = go.Scatter(
-            x=time_values, 
+            x=time_values,
             y=desired_torques,
             mode='lines+markers',
             name='Desired Torque'
@@ -334,7 +366,12 @@ class KtauExperiment:
             legend=dict(x=0, y=1),
         )
 
-        fig1 = go.Figure(data=[trace1, trace2, trace3], layout=layout1)
-        fig2 = go.Figure(data=[trace5, trace6, trace7, trace8], layout=layout2)
-        pyo.plot(fig1, filename='torque_comparison.html')
-        pyo.plot(fig2, filename='torque_vs_current.html')
+        self.fig1 = go.Figure(data=[trace1, trace2, trace3], layout=layout1)
+        self.fig2 = go.Figure(data=[trace5, trace6, trace7, trace8], layout=layout2)
+        pyo.plot(self.fig1, filename='torque_comparison.html')
+        pyo.plot(self.fig2, filename='torque_vs_current.html')
+
+        # Save data and plots
+        self.save_data_and_plots(motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, new_Ktau)
+
+

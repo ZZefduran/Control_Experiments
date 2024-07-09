@@ -1,5 +1,5 @@
 import pyCandle
-from MotorClass_Amit import MotorController
+from Experiments_Class import MotorController
 
 if __name__ == "__main__":
     voltage = 48

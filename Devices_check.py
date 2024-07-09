@@ -1,7 +1,11 @@
 from ka3000_serial import ka3000
 import pyCandle
 
-import time
+
+
+from TestClass import MotorController
+
+
 # from motor_power import tongui
 
 
@@ -67,8 +71,8 @@ import time
 
 
 
-candle = pyCandle()
-print(f'Ktau is :{candle.md}')
+# candle = pyCandle()
+# print(f'Ktau is :{candle.md}')
 
 
 

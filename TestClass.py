@@ -1,5 +1,4 @@
 import time
-import pyvisa
 import pyCandle
 import numpy as np
 import math
@@ -143,8 +142,10 @@ class CheckTests:
 
 
 class KtauExperiment:
-    def __init__(self, motor_controller):
+    def __init__(self, motor_controller,motor_gear_ratio,motor_torque_constant):
         self.motor_controller = motor_controller
+        self.motor_gear_ratio = motor_gear_ratio
+        self.motor_torque_constant = motor_torque_constant
 
     def collect_data(self, torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, t):
         motor_torque = self.motor_controller.candle.md80s[0].getTorque()
@@ -203,7 +204,7 @@ class KtauExperiment:
             t += dt
 
             if time.time() - start_time >= 1.47 and time.time() - start_time <= 1.53:
-                I = motor_torque / (64 * 0.0859)
+                I = motor_torque / (self.motor_gear_ratio * self.motor_torque_constant)
                 currents_for_Ktau.append(I)
                 Torques_for_Ktau.append(motor_torque)
                 futek_for_Ktau.append(futek_torque)
@@ -229,6 +230,11 @@ class KtauExperiment:
 
         return t
     
+    def calculate_linear_fit(self,x,y):
+        m,b = np.polyfit(x,y,1)
+        fit_line = [m*xi + b for xi in x]
+        return fit_line,m,b
+    
     def run_experiment(self, torque_list, futek_client):
         motor_torques = []
         futek_torques = []
@@ -245,6 +251,7 @@ class KtauExperiment:
 
         self.motor_controller.candle.end()
         return motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau
+    
 
     def run_and_plot_experiment(self, torque_list, futek_client):
         if not self.motor_controller.initialize_drives():
@@ -253,13 +260,10 @@ class KtauExperiment:
 
         motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau = self.run_experiment(torque_list, futek_client)
 
-        # Calculate the linear approximation for motor torque vs current
-        m, b = np.polyfit(currents_for_Ktau, Torques_for_Ktau, 1)
-        motor_fit_line = [m * x + b for x in currents_for_Ktau]
+        futek_fit_line, m_futek, b_futek = self.calculate_linear_fit(currents_for_Ktau,Torques_for_Ktau)
+        motor_fit_line, m_motor, b_motor = self.calculate_linear_fit(currents_for_Ktau,Torques_for_Ktau)
 
-        # Calculate the linear approximation for futek torque vs current
-        m_futek, b_futek = np.polyfit(currents_for_Ktau, futek_for_Ktau, 1)
-        futek_fit_line = [m_futek * x + b_futek for x in currents_for_Ktau]
+        new_Ktau = self.motor_torque_constant*(m_futek / m_motor)
 
         # Plot the results
         trace1 = go.Scatter(
@@ -304,7 +308,7 @@ class KtauExperiment:
             x=currents_for_Ktau,
             y=motor_fit_line,
             mode='lines',
-            name=f'Motor Linear Fit: y = {m:.2f}x + {b:.2f}',
+            name=f'Motor Linear Fit: y = {m_motor:.2f}x + {b_motor:.2f}',
             line=dict(color='blue')
         )
 
@@ -322,12 +326,12 @@ class KtauExperiment:
             yaxis=dict(title='Torque (Nm)'),
             legend=dict(x=0, y=1)
         )
-
+        
         layout2 = go.Layout(
-            title='Values to Calculate Ktau',
+            title=f'New Ktau: {new_Ktau:.4f}',
             xaxis=dict(title='Motor Current (A)'),
             yaxis=dict(title='Torque (Nm)'),
-            legend=dict(x=0, y=1)
+            legend=dict(x=0, y=1),
         )
 
         fig1 = go.Figure(data=[trace1, trace2, trace3], layout=layout1)

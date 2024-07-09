@@ -1,6 +1,5 @@
 import time
 import pyCandle
-from motor_power import tongui
 from Futek import FutekClient
 from ka3000_serial import ka3000
 

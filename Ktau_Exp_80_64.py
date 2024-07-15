@@ -19,7 +19,7 @@ motor_gear_ratio = 64
 motor_torque_const = 0.0859
 SERVER_IP = "192.168.31.50"
 PORT = 1220
-torque_list = [i for i in range(0, 90, 10)]  # Desired torques in arbitrary units
+torque_list = [i for i in range(10, 100, 10)]  # Desired torques in arbitrary units
 
 # Initialize the motor controller
 motor_controller = MotorController(voltage, baud_rate, control_mode, target_frequency, loop_duration, kp, kd, ki, ff, motor_name)

@@ -4,8 +4,8 @@ from Futek import FutekClient
 from ka3000_serial import ka3000
 
 # Import custom classes
-from TestClass import MotorController  # Ensure this file is named MotorController.py
-from TestClass import KtauExperiment
+from Experiments_Class import MotorController  # Ensure this file is named MotorController.py
+from Experiments_Class import KtauExperiment
 
 # Experiment parameters
 voltage = 48
@@ -15,8 +15,8 @@ target_frequency = 0.02
 loop_duration = 1000
 (kp, kd, ki, ff) = (100.0, 5.0, 0.0, 0.0)
 motor_name = 100
-motor_gear_ratio = 6
-motor_torque_const = 0.8800
+motor_gear_ratio = 36
+motor_torque_const = 0.0834
 SERVER_IP = "192.168.31.50"
 PORT = 1220
 torque_list = [i for i in range(0, 30, 5)]  # Desired torques in arbitrary units

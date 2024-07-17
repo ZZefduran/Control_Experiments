@@ -165,10 +165,10 @@ class KtauExperiment:
         self.motor_controller.candle.begin()
         
         start_time = time.time()
-        while time.time() - start_time < 3:
+        while time.time() - start_time < 2:
             for md in self.motor_controller.candle.md80s:
                 current_time = time.time() - start_time
-                ramp_torque = torque * (current_time / 3)  # Linearly increase torque
+                ramp_torque = torque * (current_time / 2)  # Linearly increase torque
                 md.setTorque(ramp_torque)
                 self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, t)
                 # print(f'Ramping Down - Desired Torque: {ramp_torque}')
@@ -183,7 +183,7 @@ class KtauExperiment:
         dt = 0.01  # Time step in seconds (10 milliseconds)
 
         start_time = time.time()
-        while time.time() - start_time < 3:
+        while time.time() - start_time < 5:
             for md in self.motor_controller.candle.md80s:
                 md.setTorque(torque)
 
@@ -201,7 +201,7 @@ class KtauExperiment:
             time.sleep(dt)
             t += dt
 
-            if time.time() - start_time >= 1.47 and time.time() - start_time <= 1.53:
+            if time.time() - start_time >= 2.47 and time.time() - start_time <= 2.53:
                 I = motor_torque / (self.motor_gear_ratio * self.motor_torque_constant)
                 currents_for_Ktau.append(I)
                 Torques_for_Ktau.append(motor_torque)
@@ -214,10 +214,10 @@ class KtauExperiment:
         dt = 0.01  # Time step in seconds (10 milliseconds)
 
         start_time = time.time()
-        while time.time() - start_time < 3:
+        while time.time() - start_time < 2:
             for md in self.motor_controller.candle.md80s:
                 current_time = time.time() - start_time
-                ramp_torque = torque * (1 - (current_time / 3))  # Linearly decrease torque
+                ramp_torque = torque * (1 - (current_time / 2))  # Linearly decrease torque
                 md.setTorque(ramp_torque)
                 self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, t)
 
@@ -360,7 +360,7 @@ class KtauExperiment:
         )
         
         layout2 = go.Layout(
-            title=f'New Ktau: {new_Ktau:.4f}',
+            title=f'(smaller ramps time - 3) New Ktau: {new_Ktau:.4f}',
             xaxis=dict(title='Motor Current (A)'),
             yaxis=dict(title='Torque (Nm)'),
             legend=dict(x=0, y=1),

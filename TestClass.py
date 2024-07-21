@@ -167,7 +167,7 @@ class KtauExperiment:
         count = 0
         while True:
             for md in self.motor_controller.candle.md80s:
-                ramp_torque = torque * (count / 200)  # Linearly increase torque
+                ramp_torque = torque * (count / 50)  # Linearly increase torque
                 md.setTorque(ramp_torque)
                 self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, t)
             if abs(self.motor_controller.candle.md80s[0].getTorque() - torque) <= 0.1:
@@ -186,7 +186,7 @@ class KtauExperiment:
         start_time = time.time()
         while time.time() - start_time < 5:
             for md in self.motor_controller.candle.md80s:
-                md.setTorque(torque * (count / 200))
+                md.setTorque(torque * (count / 50))
 
             motor_torque = self.motor_controller.candle.md80s[0].getTorque()
             motor_current = self.motor_controller.supply.getCurr()
@@ -216,7 +216,7 @@ class KtauExperiment:
 
         while count > 0:
             for md in self.motor_controller.candle.md80s:
-                ramp_torque = torque * (count / 200)  # Linearly decrease torque
+                ramp_torque = torque * (count / 50)  # Linearly decrease torque
                 md.setTorque(ramp_torque)
                 self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, t)
             count -= 1
@@ -309,12 +309,12 @@ class KtauExperiment:
             name='Motor Torque'
         )
 
-        trace3 = go.Scatter(
-            x=time_values,
-            y=desired_torques,
-            mode='lines+markers',
-            name='Desired Torque'
-        )
+        # trace3 = go.Scatter(
+        #     x=time_values,
+        #     y=desired_torques,
+        #     mode='lines+markers',
+        #     name='Desired Torque'
+        # )
 
         trace5 = go.Scatter(
             x=currents_for_Ktau,
@@ -363,7 +363,7 @@ class KtauExperiment:
             legend=dict(x=0, y=1),
         )
 
-        self.fig1 = go.Figure(data=[trace1, trace2, trace3], layout=layout1)
+        self.fig1 = go.Figure(data=[trace1, trace2], layout=layout1)
         self.fig2 = go.Figure(data=[trace5, trace6, trace7, trace8], layout=layout2)
         pyo.plot(self.fig1, filename='torque_comparison.html')
         pyo.plot(self.fig2, filename='torque_vs_current.html')

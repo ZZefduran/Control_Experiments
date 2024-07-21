@@ -1,9 +1,9 @@
-from ka3000_serial import ka3000
-import pyCandle
+# from ka3000_serial import ka3000
+# import pyCandle
 
 
 
-from TestClass import MotorController
+# from TestClass import MotorController
 
 
 # from motor_power import tongui
@@ -90,6 +90,7 @@ from TestClass import MotorController
 
 # except serial.SerialException as e:
 #     print("Error opening serial port:", e)
+
 
 
 

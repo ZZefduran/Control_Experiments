@@ -3,13 +3,14 @@ import pyCandle
 import numpy as np
 import math
 from motor_power import tongui
-
+from Futek import FutekClient
 
 class MotorController:
     def __init__(self, voltage, baud_rate, control_mode, 
                  target_frequency, loop_duration, kp, kd, ki, ff, 
                  motor_name):
         self.supply = tongui()
+        self.Futek = FutekClient()
         self.voltage = voltage
         self.candle = pyCandle.Candle(baud_rate, True)
         self.control_mode = control_mode
@@ -21,6 +22,7 @@ class MotorController:
         self.kd = kd
         self.ff = ff
         self.ids = []
+
 
     def set_gains(self):
         if self.control_mode == pyCandle.IMPEDANCE:
@@ -135,4 +137,6 @@ class CheckTests:
             self.move_motor_sine_wave()
         self.motor_controller.shutdown()
 
+    def Futek_zero(self):
+        self.Futek.set_zero()
 

@@ -9,6 +9,7 @@ import plotly.offline as pyo
 import pandas as pd
 from datetime import datetime
 from Futek import FutekClient
+import subprocess
 
 class MotorController:
     def __init__(self, voltage, baud_rate, control_mode, 
@@ -27,6 +28,7 @@ class MotorController:
         self.kd = kd
         self.ff = ff
         self.ids = []
+        self.gear_ratio, self.torque_constant = self.retrieve_motor_info(motor_name)
 
     def set_gains(self):
         if self.control_mode == pyCandle.IMPEDANCE:
@@ -89,82 +91,47 @@ class MotorController:
     def Futek_zero(self):
         self.Futek.set_zero()
 
+    def retrieve_motor_info(self, motor_id):
+        # Run the mdtool command to get motor information
+        result = subprocess.run(['mdtool', 'setup', 'info', str(motor_id)], capture_output=True, text=True)
 
+        # Check if the command was successful
+        if result.returncode != 0:
+            print(f"Error running mdtool: {result.stderr}")
+            return None, None
 
-class CheckTests:
-    def __init__(self, motor_controller):
-        self.motor_controller = motor_controller
+        # Process the output to extract the gear ratio and torque constant
+        gear_ratio = None
+        torque_constant = None
+        for line in result.stdout.splitlines():
+            if 'gear ratio' in line:
+                gear_ratio = float(line.split(':')[1].strip())
+            elif 'motor torque constant' in line:
+                torque_constant = float(line.split(':')[1].strip().split()[0])  # Remove 'Nm/A'
 
-    def move_motor_sine_wave(self):
-        t = 0.0
-        dt = self.motor_controller.target_frequency
-        self.motor_controller.candle.begin()
-        for md in self.motor_controller.candle.md80s:
-            md.setMaxTorque(80)
-        for i in range(self.motor_controller.loop_duration):
-            t += dt
-            position = math.sin(t) * 2.0
-            self.motor_controller.candle.md80s[0].setTargetPosition(position)
-            state = self.motor_controller.get_state()
-            time.sleep(0.01)
-        self.motor_controller.candle.end()
+        return gear_ratio, torque_constant
 
-    def const_torque(self, tor):
-        self.motor_controller.candle.begin()
-        for md in self.motor_controller.candle.md80s:
-            while True:
-                md.setTorque(tor)
-                state = self.motor_controller.get_state()
-                time.sleep(0.1)
-        self.motor_controller.candle.end()
-        print(f"Setting constant torque: {tor}")
-
-    def const_vel(self, vel):
-        self.motor_controller.candle.begin()
-        for md in self.motor_controller.candle.md80s:
-            while True:
-                md.setTargetVelocity(vel)
-                state = self.motor_controller.get_state()
-                time.sleep(0.01)
-        self.motor_controller.candle.end()
-        print(f"Setting constant velocity: {vel}")
-
-    def const_pos(self, pos):
-        self.motor_controller.candle.begin()
-        for md in self.motor_controller.candle.md80s:
-            while True:
-                md.setTargetPosition(pos)
-                state = self.motor_controller.get_state()
-                time.sleep(0.01)
-        self.motor_controller.candle.end()
-        print(f"Setting constant Position: {pos}")
-
-    def run(self):
-        self.motor_controller.setup_power_supply()
-        if self.motor_controller.initialize_drives():
-            self.move_motor_sine_wave()
-        self.motor_controller.shutdown()
 
 
 class KtauExperiment:
-    def __init__(self, motor_controller, motor_gear_ratio, motor_torque_constant):
+    def __init__(self, motor_controller):
         self.motor_controller = motor_controller
-        self.motor_gear_ratio = motor_gear_ratio
-        self.motor_torque_constant = motor_torque_constant
+        self.motor_gear_ratio = self.motor_controller.gear_ratio
+        self.motor_torque_constant = self.motor_controller.torque_constant
+        print(f"torque constant is:{self.motor_torque_constant}",f"gear ratio is:{self.motor_gear_ratio}")
 
-    def collect_data(self, torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, t):
+    def collect_data(self, torque, futek_client, motor_torques, futek_torques, time_values, t):
         motor_torque = self.motor_controller.candle.md80s[0].getTorque()
         motor_current = self.motor_controller.supply.getCurr()
         futek_torque = futek_client.get_torque()
 
         motor_torques.append(motor_torque)
         futek_torques.append(futek_torque)
-        desired_torques.append(torque)
         time_values.append(t)
 
-        print(f"Holding - Desired Torque: {torque} | Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
+        print(f"| Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
 
-    def ramp_up(self, torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau):
+    def ramp_up(self, torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau):
         t = time_values[-1] if time_values else 0  # Start from the last time value if available
         dt = 0.01  # Time step in seconds (10 milliseconds)
         
@@ -173,12 +140,12 @@ class KtauExperiment:
         count = 0
         while True:
             for md in self.motor_controller.candle.md80s:
-                ramp_torque = torque * (count / 100)  # Linearly increase torque
+                ramp_torque = torque * (count / 50)  # Linearly increase torque
                 md.setTorque(ramp_torque)
-                self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, t)
+                self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, time_values, t)
             if abs(self.motor_controller.candle.md80s[0].getTorque() - torque) <= 0.1:
                 break
-            elif self.motor_controller.candle.md80s[0].getTorque() >= torque +10:
+            elif self.motor_controller.candle.md80s[0].getTorque() >= torque +1:
                 break
 
             time.sleep(dt)
@@ -187,14 +154,14 @@ class KtauExperiment:
 
         return t, count
 
-    def hold_torque(self, torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count):
+    def hold_torque(self, torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count):
         t = time_values[-1] if time_values else 0  # Start from the last time value if available
         dt = 0.01  # Time step in seconds (10 milliseconds)
 
         start_time = time.time()
         while time.time() - start_time < 5:
             for md in self.motor_controller.candle.md80s:
-                md.setTorque(torque * (count / 100))
+                md.setTorque(torque * (count / 50))
 
             motor_torque = self.motor_controller.candle.md80s[0].getTorque()
             motor_current = self.motor_controller.supply.getCurr()
@@ -202,35 +169,34 @@ class KtauExperiment:
 
             motor_torques.append(motor_torque)
             futek_torques.append(futek_torque)
-            desired_torques.append(torque)
             time_values.append(t)
 
-            print(f"Holding - Desired Torque: {torque} | Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
+            print(f"Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
 
             time.sleep(dt)
             t += dt
 
             if time.time() - start_time >= 2.47 and time.time() - start_time <= 2.53:
-                I = motor_torque / (self.motor_gear_ratio * self.motor_torque_constant)
+                I = motor_torque / ((1/self.motor_gear_ratio) * self.motor_torque_constant)
                 currents_for_Ktau.append(I)
-                Torques_for_Ktau.append(motor_torque)
-                futek_for_Ktau.append(futek_torque)
+                Torques_for_Ktau.append(motor_torque*self.motor_gear_ratio)
+                futek_for_Ktau.append(futek_torque*self.motor_gear_ratio)
 
         return t, count
 
-    def ramp_down(self, torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count):
+    def ramp_down(self, torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count):
         t = time_values[-1] if time_values else 0  # Start from the last time value if available
         dt = 0.01  # Time step in seconds (10 milliseconds)
 
         while count > 0:
             for md in self.motor_controller.candle.md80s:
-                ramp_torque = torque * (count / 100)  # Linearly decrease torque
+                ramp_torque = torque * (count / 50)  # Linearly decrease torque
                 md.setTorque(ramp_torque)
-                self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, t)
+                self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, time_values, t)
             count -= 1
             time.sleep(dt)
             t += dt
-
+            print("Down ramp")
         return t
     
     def calculate_linear_fit(self, x, y):
@@ -241,27 +207,25 @@ class KtauExperiment:
     def run_experiment(self, torque_list, futek_client):
         motor_torques = []
         futek_torques = []
-        desired_torques = []
         time_values = []  # List to store time values
         currents_for_Ktau = []
         Torques_for_Ktau = []
         futek_for_Ktau = []
 
         for torque in torque_list:
-            t, count = self.ramp_up(torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau)
-            t, count = self.hold_torque(torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count)
-            t = self.ramp_down(torque, futek_client, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count)
+            t, count = self.ramp_up(torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau)
+            t, count = self.hold_torque(torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count)
+            t = self.ramp_down(torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count)
             self.motor_controller.Futek_zero()
             time.sleep(2)
         self.motor_controller.candle.end()
-        return motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau
+        return motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau
 
-    def save_data_and_plots(self, motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, new_Ktau):
+    def save_data_and_plots(self, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, new_Ktau):
         # Pad lists to make them the same length
-        max_len = max(len(motor_torques), len(futek_torques), len(desired_torques), len(time_values), len(currents_for_Ktau), len(Torques_for_Ktau), len(futek_for_Ktau))
+        max_len = max(len(motor_torques), len(futek_torques), len(time_values), len(currents_for_Ktau), len(Torques_for_Ktau), len(futek_for_Ktau))
         motor_torques += [None] * (max_len - len(motor_torques))
         futek_torques += [None] * (max_len - len(futek_torques))
-        desired_torques += [None] * (max_len - len(desired_torques))
         time_values += [None] * (max_len - len(time_values))
         currents_for_Ktau += [None] * (max_len - len(currents_for_Ktau))
         Torques_for_Ktau += [None] * (max_len - len(Torques_for_Ktau))
@@ -277,7 +241,6 @@ class KtauExperiment:
             'Time(s)': time_values,
             'MotorTorque(Nm)': motor_torques,
             'FutekTorque(Nm)': futek_torques,
-            'DesiredTorque(Nm)': desired_torques,
             'MotorCurrent(A)': currents_for_Ktau,
             'TorqueforKtau(Nm)': Torques_for_Ktau,
             'FutekforKtau(Nm)': futek_for_Ktau
@@ -296,7 +259,7 @@ class KtauExperiment:
             print("Failed to initialize drives")
             return
 
-        motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau = self.run_experiment(torque_list, futek_client)
+        motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau = self.run_experiment(torque_list, futek_client)
 
         futek_fit_line, m_futek, b_futek = self.calculate_linear_fit(currents_for_Ktau, futek_for_Ktau)
         motor_fit_line, m_motor, b_motor = self.calculate_linear_fit(currents_for_Ktau, Torques_for_Ktau)
@@ -316,13 +279,6 @@ class KtauExperiment:
             y=motor_torques,
             mode='lines+markers',
             name='Motor Torque'
-        )
-
-        trace3 = go.Scatter(
-            x=time_values,
-            y=desired_torques,
-            mode='lines+markers',
-            name='Desired Torque'
         )
 
         trace5 = go.Scatter(
@@ -372,10 +328,10 @@ class KtauExperiment:
             legend=dict(x=0, y=1),
         )
 
-        self.fig1 = go.Figure(data=[trace1, trace2, trace3], layout=layout1)
+        self.fig1 = go.Figure(data=[trace1, trace2], layout=layout1)
         self.fig2 = go.Figure(data=[trace5, trace6, trace7, trace8], layout=layout2)
         pyo.plot(self.fig1, filename='torque_comparison.html')
         pyo.plot(self.fig2, filename='torque_vs_current.html')
 
         # Save data and plots
-        self.save_data_and_plots(motor_torques, futek_torques, desired_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, new_Ktau)
+        self.save_data_and_plots(motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, new_Ktau)

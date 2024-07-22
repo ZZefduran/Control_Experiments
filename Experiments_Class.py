@@ -13,15 +13,15 @@ import subprocess
 
 class MotorController:
     def __init__(self, voltage, baud_rate, control_mode, 
-                 target_frequency, loop_duration, kp, kd, ki, ff, 
+                  kp, kd, ki, ff, 
                  motor_name):
         self.supply = tongui()
         self.Futek = FutekClient()
         self.voltage = voltage
         self.candle = pyCandle.Candle(baud_rate, True)
         self.control_mode = control_mode
-        self.target_frequency = target_frequency
-        self.loop_duration = loop_duration
+        # self.target_frequency = target_frequency
+        # self.loop_duration = loop_duration
         self.motor_name = motor_name
         self.kp = kp
         self.ki = ki
@@ -145,7 +145,7 @@ class KtauExperiment:
                 self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, time_values, t)
             if abs(self.motor_controller.candle.md80s[0].getTorque() - torque) <= 0.1:
                 break
-            elif self.motor_controller.candle.md80s[0].getTorque() >= torque +1:
+            elif self.motor_controller.candle.md80s[0].getTorque() >= torque +0.5:
                 break
 
             time.sleep(dt)
@@ -216,8 +216,10 @@ class KtauExperiment:
             t, count = self.ramp_up(torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau)
             t, count = self.hold_torque(torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count)
             t = self.ramp_down(torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count)
-            self.motor_controller.Futek_zero()
-            time.sleep(2)
+            for md in self.motor_controller.candle.md80s:
+                md.setTorque(0)
+                self.motor_controller.Futek_zero()
+            time.sleep(1.5)
         self.motor_controller.candle.end()
         return motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau
 
@@ -281,7 +283,7 @@ class KtauExperiment:
             name='Motor Torque'
         )
 
-        trace5 = go.Scatter(
+        trace4 = go.Scatter(
             x=currents_for_Ktau,
             y=Torques_for_Ktau,
             mode='markers',
@@ -289,7 +291,7 @@ class KtauExperiment:
             marker=dict(color='blue')
         )
 
-        trace6 = go.Scatter(
+        trace5 = go.Scatter(
             x=currents_for_Ktau,
             y=futek_for_Ktau,
             mode='markers',
@@ -298,7 +300,7 @@ class KtauExperiment:
         )
 
         # Add linear fit traces
-        trace7 = go.Scatter(
+        trace6 = go.Scatter(
             x=currents_for_Ktau,
             y=motor_fit_line,
             mode='lines',
@@ -306,7 +308,7 @@ class KtauExperiment:
             line=dict(color='blue')
         )
 
-        trace8 = go.Scatter(
+        trace7 = go.Scatter(
             x=currents_for_Ktau,
             y=futek_fit_line,
             mode='lines',
@@ -329,7 +331,7 @@ class KtauExperiment:
         )
 
         self.fig1 = go.Figure(data=[trace1, trace2], layout=layout1)
-        self.fig2 = go.Figure(data=[trace5, trace6, trace7, trace8], layout=layout2)
+        self.fig2 = go.Figure(data=[trace4, trace5, trace6, trace7], layout=layout2)
         pyo.plot(self.fig1, filename='torque_comparison.html')
         pyo.plot(self.fig2, filename='torque_vs_current.html')
 

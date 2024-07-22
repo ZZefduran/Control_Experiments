@@ -11,16 +11,16 @@ from Experiments_Class import KtauExperiment
 voltage = 48
 baud_rate = pyCandle.CAN_BAUD_2M
 control_mode = pyCandle.IMPEDANCE  # Set to IMPEDANCE mode for torque control
-target_frequency = 0.02
-loop_duration = 1000
+# target_frequency = 0.02
+# loop_duration = 1000
 SERVER_IP = "192.168.31.50"
 PORT = 1220
 (kp, kd, ki, ff) = (100.0, 5.0, 0.0, 0.0)
-motor_name = 207
-torque_list = [i for i in range(0, 90, 10)]  # Desired torques in arbitrary units
+motor_name = 100
+torque_list = [i for i in range(0, 35, 5)]  # Desired torques in arbitrary units
 
 # Initialize the motor controller
-motor_controller = MotorController(voltage, baud_rate, control_mode, target_frequency, loop_duration, kp, kd, ki, ff, motor_name)
+motor_controller = MotorController(voltage, baud_rate, control_mode, kp, kd, ki, ff, motor_name)
 
 # Initialize the Futek sensor
 futek_client = FutekClient()

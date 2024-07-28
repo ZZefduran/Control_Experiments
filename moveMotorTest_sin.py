@@ -1,5 +1,5 @@
 import pyCandle
-from Experiments_Class import MotorController
+from Ktau_Experiments_Class import MotorController
 
 if __name__ == "__main__":
     voltage = 48

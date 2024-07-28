@@ -4,17 +4,13 @@ from Futek import FutekClient
 from ka3000_serial import ka3000
 
 # Import custom classes
-from Experiments_Class import MotorController  # Ensure this file is named MotorController.py
-from Experiments_Class import KtauExperiment
+from Ktau_Experiments_Class import MotorController, KtauExperiment
+
 
 # Experiment parameters
-voltage = 48
+voltage = 48.0
 baud_rate = pyCandle.CAN_BAUD_2M
 control_mode = pyCandle.IMPEDANCE  # Set to IMPEDANCE mode for torque control
-# target_frequency = 0.02
-# loop_duration = 1000
-SERVER_IP = "192.168.31.50"
-PORT = 1220
 (kp, kd, ki, ff) = (100.0, 5.0, 0.0, 0.0)
 motor_name = 100
 torque_list = [i for i in range(0, 35, 5)]  # Desired torques in arbitrary units
@@ -31,7 +27,7 @@ korad.setOutput(1)
 
 # Setup power supplies
 motor_controller.setup_power_supply()
-time.sleep(0.5)
+time.sleep(2)
  
 # Run and plot the experiment
 ktau_experiment = KtauExperiment(motor_controller)

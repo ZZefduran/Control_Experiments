@@ -20,8 +20,6 @@ class MotorController:
         self.voltage = voltage
         self.candle = pyCandle.Candle(baud_rate, True)
         self.control_mode = control_mode
-        # self.target_frequency = target_frequency
-        # self.loop_duration = loop_duration
         self.motor_name = motor_name
         self.kp = kp
         self.ki = ki

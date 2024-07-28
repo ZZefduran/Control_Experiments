@@ -81,7 +81,7 @@ class FutekClient():
 # futek = FutekClient()
 # while True:
 #     print(futek.get_torque())
-# print(f.zero)
+# # print(f.zero)
 
 # for i in range(1000):  
     

@@ -1,4 +1,4 @@
-log_name: new_Experiment
+log_name: Sin_exp
 log_dir: /home/zzefduran/Documents/exp_csvs
 vis_dof: motor
 trajectory:
@@ -8,25 +8,13 @@ trajectory:
   plot:
     show: true
     save: true
-
-# piecewise:
-#   objective: vel # pos # torque
-#   values:
-#   - [0.0, 0.0]
-#   - [1/30, 0.0]
-#   - [2/30, 2.0]
-#   - [10-2/30, 2.0]
-#   - [10-1/30, 0.0]
-#   - [10.0, 0.0]
-
-
 wave:
   objective: vel # pos # torque
   frequency:
     start: 0.3
-    stop: 1.0
+    stop: 0.3
     step: 0.1
-  separator: 2 #[sec]
+  separator: 1 #[sec]
   amplitude_factor:
     start: 1.0
     stop: 1.0

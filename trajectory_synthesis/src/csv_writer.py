@@ -27,10 +27,12 @@ class CsvWriter:
         path = os.path.join(dirname, f"{name}.csv")
         pd_dict.to_csv(path, index=index)
         print(f"Saved file {path}")
+        return path
 
     def write_data(self, name):
         if self.data is None:
             raise ValueError("self.data is None, use method self.set_data to set it first")
-        self._save(self.data, self.dir, name, False)
+        path = self._save(self.data, self.dir, name, False)
+        return path
         # TODO: remove this once new cliapp is stable
         # self.write_data_old_format(name)

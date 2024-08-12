@@ -1,8 +1,13 @@
+from pathlib import Path
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
+
 from argparse import ArgumentParser
 import os
-import sys
 import numpy as np
 import scipy as sp
+
 from csv_writer import CsvWriter
 from single_waves_generators.single_wave_generator_factory import SingleWaveGeneratorFactory
 from single_waves_generators.single_wave_generator_base import SingleWaveGeneratorBase
@@ -10,9 +15,8 @@ from single_waves_generators.trapezoid_wave_generator import TrapezoidWaveGenera
 from cfg_data import CfgData
 from single_waves_generators.spline_wave_generator import generate_spline
 from omegaconf import OmegaConf
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).resolve().parents[3]))
+from mask_generator import get_mask
+from plot_trajectory import plot_traj
 import ast
 import operator as op
 import numbers
@@ -31,12 +35,15 @@ class TrajectoryGenerator:
             cfg = TrajectoryGeneratorArgsParser(default_cfg).args.cfg
         self.cfg_data = CfgData(cfg)
 
-    def get_freq_trajectory(self, freq, swg: SingleWaveGeneratorBase, amplitude, mask, offsets):
+    def get_freq_trajectory(self, freq, swg: SingleWaveGeneratorBase, amplitude,
+                             mask, 
+                            #  offsets
+                             ):
         if isinstance(swg, TrapezoidWaveGenerator):
             swg.set_bounds(self.cfg_data.cfg.wave.trapezoid.bounds_ratio)
         single_wave = swg.generate(freq)
         return np.transpose(
-            [single_wave * factor * amplitude + offset for factor, offset in zip(mask, offsets)]
+            [single_wave * factor * amplitude  for factor in mask]
         )
 
     def get_dof_limit(self, dof, limits):
@@ -56,9 +63,9 @@ class TrajectoryGenerator:
 
     def generate_trajectory(
         self,
-        offsets,
-        custom_init,
-        limits,
+        # offsets,
+        # custom_init,
+        # limits,
         amplitude,
         freq_range,
         amp_factor_range,
@@ -69,31 +76,30 @@ class TrajectoryGenerator:
         shape = self.cfg_data.cfg.trajectory.shape
         sample_freq = self.cfg_data.cfg.trajectory.frequency
         repeat = self.cfg_data.cfg.wave.repeat
-        mask = get_mask(shape, side, dof_idx, len(self.cfg_data.cfg.all_dof))
+        mask = get_mask(shape, side, dof_idx, 1)
+
         if shape == "spline":
             self.generate_spline(
                 offsets, limits, amplitude, amp_factor_range, dof, sample_freq, repeat, mask
             )
         else:
             traj = self.generate_waves_trajectory(
-                offsets,
-                custom_init,
-                amplitude,
-                freq_range,
-                amp_factor_range,
-                shape,
-                sample_freq,
-                repeat,
-                mask,
+                # offsets,
+                # custom_init,
+                amplitude=amplitude,
+                freq_range=freq_range,
+                amp_factor_range=amp_factor_range,
+                shape=shape,
+                sample_freq=sample_freq,
+                repeat=repeat,
+                mask=mask,
             )
-        if self.cfg_data.cfg.asset_yaml.check_limits:
-            self.validate_trajectory_in_limits(traj, limits)
-        return traj
+        return {dof+'_pos': traj.reshape([traj.shape[0]]).tolist()}
 
     def generate_waves_trajectory(
         self,
-        offsets,
-        custom_init,
+        # offsets,
+        # custom_init,
         amplitude,
         freq_range,
         amp_factor_range,
@@ -109,7 +115,9 @@ class TrajectoryGenerator:
             for freq in freq_range:
                 for amplitude_factor in amp_factor_range:
                     single_wave = self.get_freq_trajectory(
-                        freq, swg, amplitude * amplitude_factor, mask, offsets
+                        freq, swg, amplitude * amplitude_factor
+                        , mask, 
+                        # offsets
                     )
                     if (
                         self.cfg_data.cfg.wave.get("partial", False)
@@ -120,7 +128,8 @@ class TrajectoryGenerator:
                     freq_separator_sec = self.cfg_data.cfg.wave.get("separator")
                     if freq_separator_sec is not None:
                         repeated_wave = self.add_separator(
-                            offsets, sample_freq, repeated_wave, freq_separator_sec
+                            # offsets, 
+                            sample_freq, repeated_wave, freq_separator_sec
                         )
                     waves_all_freqs.append(repeated_wave)
             all_waves_traj.append(np.concatenate(waves_all_freqs))
@@ -128,7 +137,8 @@ class TrajectoryGenerator:
         # for waves_traj in all_waves_traj[1:]:
         #     traj = np.concatenate((traj, waves_traj))
         traj = np.concatenate(all_waves_traj)
-        traj = self.add_perimeters(traj, offsets, custom_init)
+        traj = self.add_perimeters(traj,
+                                    offsets = [0], custom_init = [0])
         return traj
 
     def add_perimeters(self, traj, offsets, custom_init):
@@ -157,9 +167,11 @@ class TrajectoryGenerator:
             )
         return traj
 
-    def add_separator(self, offsets, sample_freq, repeated_wave, freq_separator_sec):
+    def add_separator(self,
+                    #    offsets,
+                         sample_freq, repeated_wave, freq_separator_sec):
         repetition = freq_separator_sec * sample_freq
-        freq_separator = np.tile(offsets, (repetition, 1))
+        freq_separator = np.tile([0], (repetition, 1))
         repeated_wave = np.concatenate([repeated_wave, freq_separator])
         return repeated_wave
 
@@ -184,12 +196,13 @@ class TrajectoryGenerator:
             )
         return traj
 
-    def save_and_plot(self, data, csv_writer: CsvWriter, name, offsets=None, limits=None):
+    def save_and_plot(self, data, csv_writer: CsvWriter, name):
         csv_data = data
         csv_writer.update_data(csv_data)
-        csv_writer.write_data(name)
-        f=0
-        # self.plot_entire_data(data, name)
+        path = csv_writer.write_data(name)
+        self.saved_path = path
+        self.plot_entire_data(data, name)
+
 
     @staticmethod
     def to_title(name):
@@ -247,27 +260,28 @@ class TrajectoryGenerator:
         plotter.plot(self.to_title(name), save=should_save, shared_x=True, show=should_show)
 
     def plot_entire_data(self, data: dict, name: str):
-        subplot_num = len(data)
-        plotter = Plotter(self.plots_dir)
-        x = np.arange(len(next(iter(data.values())))) / self.cfg_data.cfg.trajectory.frequency
-        subplot_idx, _ = plotter.get_square_layout_subplot_idx(subplot_num)
-        for i, (key, val) in enumerate(data.items()):
-            dof = "_".join(key.split("_")[:-1])
-            dof_val = key.split("_")[-1]
-            plotter.add_data(
-                PlotData(self.to_title(dof), x=x, y=val, subplot=subplot_idx[i], color="royalblue")
-            )
-        for i, dof in enumerate(data.keys()):
-            x_label = "Time [sec]" if subplot_idx[i][0] == plotter.subplots[0] else None
-            y_label = dof_val
-            plotter.add_format(
-                PlotFormat(
-                    x_label, y_label, title=f"<b>{self.to_title(dof)}</b>", subplot=subplot_idx[i]
-                )
-            )
-        should_save = self.cfg_data.cfg.trajectory.plot.save
-        should_show = self.cfg_data.cfg.trajectory.plot.show
-        plotter.plot(self.to_title(name), save=should_save, shared_x=True, show=should_show)
+
+        plot_traj(data,self.cfg_data.cfg.trajectory.frequency)
+        # subplot_num = len(data)
+        # plotter = Plotter(self.plots_dir)
+        # subplot_idx, _ = plotter.get_square_layout_subplot_idx(subplot_num)
+        # for i, (key, val) in enumerate(data.items()):
+        #     dof = "_".join(key.split("_")[:-1])
+        #     dof_val = key.split("_")[-1]
+        #     plotter.add_data(
+        #         PlotData(self.to_title(dof), x=x, y=val, subplot=subplot_idx[i], color="royalblue")
+        #     )
+        # for i, dof in enumerate(data.keys()):
+        #     x_label = "Time [sec]" if subplot_idx[i][0] == plotter.subplots[0] else None
+        #     y_label = dof_val
+        #     plotter.add_format(
+        #         PlotFormat(
+        #             x_label, y_label, title=f"<b>{self.to_title(dof)}</b>", subplot=subplot_idx[i]
+        #         )
+        #     )
+        # should_save = self.cfg_data.cfg.trajectory.plot.save
+        # should_show = self.cfg_data.cfg.trajectory.plot.show
+        # plotter.plot(self.to_title(name), save=should_save, shared_x=True, show=should_show)
 
     def set_control_gains(self, csv_writer: CsvWriter):
         pod_yaml_cfg = self.cfg_data.cfg.get("pod_yaml")
@@ -327,7 +341,7 @@ class TrajectoryGenerator:
         csv_writer = CsvWriter(self.csv_dir)
         if self.cfg_data.cfg.get("export_control_gains", False):
             self.set_control_gains(csv_writer)
-        data = self.generate_piecewise_trajectory('motor')
+        data = self.generate_piecewise_trajectory(self.cfg_data.cfg.vis_dof[0])
         self.save_and_plot(data, csv_writer, self.cfg_data.cfg.log_name)
 
     def get_piecewise_vectors(self):
@@ -372,7 +386,7 @@ class TrajectoryGenerator:
         return {f"{dof}_{self.cfg_data.cfg.piecewise.objective}": dof_data}
 
     def generate_wave(self):
-        amplitudes = self.cfg_data.get_amplitudes(offsets)
+        amplitudes = self.cfg_data.get_amplitudes()
         freq_range = self.cfg_data.get_freq_range()
         amp_factor_range = self.cfg_data.get_amplitude_range()
 
@@ -381,34 +395,35 @@ class TrajectoryGenerator:
         csv_writer = CsvWriter(self.csv_dir)
         if self.cfg_data.cfg.get("export_control_gains", False):
             self.set_control_gains(csv_writer)
-        if self.cfg_data.cfg.trajectory.shape in ["sine", "spline", "trapezoid", "sine+trapezoid"]:
-            for dof_idx, dof in enumerate(self.cfg_data.cfg.all_dof):
-                if dof in self.cfg_data.cfg.vis_dof:
-                    data = self.generate_trajectory(
-                        offsets,
-                        custom_init,
-                        limits,
-                        amplitudes[dof],
-                        freq_range,
-                        amp_factor_range,
-                        dof_idx=dof_idx,
-                        dof=dof,
-                    )
-                    self.save_and_plot(
-                        data, csv_writer, self.cfg_data.cfg.log_name, offsets, limits
-                    )
-        else:
-            for side in self.cfg_data.cfg.vis_side:
+        # if self.cfg_data.cfg.trajectory.shape in ["sine", "spline", "trapezoid", "sine+trapezoid", "wave"]:
+        
+        for dof_idx, dof in enumerate([self.cfg_data.cfg.vis_dof]):
+            if dof in [self.cfg_data.cfg.vis_dof]:
                 data = self.generate_trajectory(
-                    offsets,
-                    custom_init,
-                    limits,
-                    amplitudes[side],
+                    # offsets,
+                    # custom_init,
+                    # limits,
+                    amplitudes[dof],
                     freq_range,
                     amp_factor_range,
-                    side=side,
+                    dof_idx=dof_idx,
+                    dof=dof,
                 )
-                self.save_and_plot(data, csv_writer, self.cfg_data.cfg.log_name, offsets, limits)
+                self.save_and_plot(
+                    data, csv_writer, self.cfg_data.cfg.log_name
+                )
+        # else:
+        #     for side in self.cfg_data.cfg.vis_side:
+        #         data = self.generate_trajectory(
+        #             offsets,
+        #             custom_init,
+        #             limits,
+        #             amplitudes[side],
+        #             freq_range,
+        #             amp_factor_range,
+        #             side=side,
+        #         )
+        #         self.save_and_plot(data, csv_writer, self.cfg_data.cfg.log_name, offsets, limits)
 
     def validate_trajectory_in_limits(self, traj, limits):
         out_of_range_dofs = []

@@ -8,6 +8,7 @@
 
 
 
+
         {
             "name": "Python Debugger: Current File",
             "type": "debugpy",
@@ -64,7 +65,19 @@
             "env": {
                 "PYTHONPATH": "${workspaceRoot}"
             },
-        }
+        },
+        {
+            "name": "Sine_exp",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/zzefduran/code/newBenchTest/Control_Experiments/sin_exp.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${fileDirname}",
+            "env": {
+                "PYTHONPATH": "${workspaceRoot}"
+            },
+        },
 
 
     ]

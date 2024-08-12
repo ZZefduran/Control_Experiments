@@ -9,10 +9,12 @@ class CfgData:
     def get_amplitudes(self):
         amplitudes = {}
         if self.cfg.trajectory.shape in ["sine", "spline", "trapezoid", "sine+trapezoid"]: 
-            amplitudes[dof] = abs(traj_limit - offsets[i])
+            dof = self.cfg.vis_dof
+            traj_limit = self.cfg.dof_pos_traj_limit[dof]
+            amplitudes[dof] = abs(traj_limit)
         else:
-            for side in self.cfg.vis_side:
-                amplitudes[side] = self.cfg.wave.stomping.amplitude
+            dof = self.cfg.vis_dof
+            amplitudes[dof] = self.cfg.wave.stomping.amplitude
 
         return amplitudes
     

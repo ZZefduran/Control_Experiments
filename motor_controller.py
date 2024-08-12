@@ -60,6 +60,7 @@ class MotorController:
             self.candle.controlMd80Enable(drive_id, True)
         print(f"Motor initialized with ID: {self.ids[0]}")
         self.set_gains()
+        self.candle.begin()
         return True
 
     def get_state(self):

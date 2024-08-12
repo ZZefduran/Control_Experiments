@@ -3,10 +3,10 @@ import pyCandle
 from Futek import FutekClient
 from ka3000_serial import ka3000
 from motor_controller import MotorController
+from omegaconf import OmegaConf
 
-
-class SinExp:
-    def __init__(self,motor_name):
+class CsvReaderExperiment:
+    def __init__(self,motor_name,csv_file):
         self.motor_name = motor_name
         self.voltage = 48.0
         self.baud_rate = pyCandle.CAN_BAUD_2M
@@ -15,12 +15,14 @@ class SinExp:
        # Initialize the motor controller
         self.motor_controller = MotorController(self.voltage, self.baud_rate, self.control_mode,
                                                  self.kp, self.kd, self.ki, self.ff, self.motor_name)
+        self.trajectory = OmegaConf.load(csv_file)
         # Initialize the Futek sensor
         futek_client = FutekClient()
 
         # Initializing korad & tonghui
         korad = ka3000()
-        korad.setOutput(1)
+        # korad.setOutput(1)
+        korad.setCurrent(0.0)
 
         # Setup power supplies
         self.motor_controller.setup_power_supply()
@@ -31,6 +33,8 @@ class SinExp:
         while True:
             self.motor_controller.torque_cmd(torque)
             self.motor_controller.get_state()
+        
+            # print(self.motor_controller.candle.md80s[0].getTorque())
         f=0
         ktau_experiment = KtauExperiment(motor_controller)
         ktau_experiment.run_and_plot_experiment(torque_list, futek_client)
@@ -40,4 +44,4 @@ class SinExp:
         korad.setOutput(0)
 
 
-sin_exp = SinExp(motor_name = 100)
+sin_exp = CsvReaderExperiment(motor_name = 100)

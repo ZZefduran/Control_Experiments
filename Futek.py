@@ -8,7 +8,7 @@ import time
 
 # SERVER_IP = "192.168.30.33"
 # SERVER_IP = "192.168.55.100"
-SERVER_IP = "192.168.31.97"
+SERVER_IP = "192.168.33.80"
 PORT = 1220
 
 class FutekClient():

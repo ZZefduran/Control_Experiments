@@ -188,7 +188,8 @@ class TrajectoryGenerator:
         show = self.cfg_data.cfg.trajectory.plot.show
         plateau_num = self.cfg_data.cfg.wave.get("plateau_num", 0)
         for amplitude_factor in amp_factor_range:
-            single_spline = generate_spline(
+            single_spline = generate_spline(    'Column2': ['A', 'B', 'C']
+
                 sample_freq, amplitude * amplitude_factor, repeat, dof_limit, show, plateau_num
             )
             traj = np.transpose(

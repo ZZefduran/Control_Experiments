@@ -107,6 +107,21 @@ class KtauExperiment:
         self.motor_torque_constant = self.motor_controller.torque_constant
         print(f"torque constant is:{self.motor_torque_constant}", f"gear ratio is:{self.motor_gear_ratio}")
 
+    def retrieve_motor_info(self, motor_id):
+        result = subprocess.run(['mdtool', 'setup', 'info', str(motor_id)], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Error running mdtool: {result.stderr}")
+            return None, None
+        gear_ratio = None
+        torque_constant = None
+        for line in result.stdout.splitlines():
+            if 'gear ratio' in line:
+                gear_ratio = float(line.split(':')[1].strip())
+            elif 'motor torque constant' in line:
+                torque_constant = float(line.split(':')[1].strip().split()[0])
+        return gear_ratio, torque_constant
+
+
     def load_params(self, motor_type):
         # Load the YAML file
         with open('experiment_params.yaml', 'r') as file:

@@ -195,6 +195,18 @@ class KtauExperiment:
             time.sleep(dt)
             t += dt
             print("Down ramp")
+
+        start_time = time.time()
+        while time.time() - start_time < 4:
+            for md in self.motor_controller.candle.md80s:
+                zero_torque = 0
+                md.setTorque(zero_torque)
+                self.collect_data(zero_torque, futek_client, motor_torques, futek_torques, time_values, t)
+
+            time.sleep(dt)
+            t += dt
+            print("Down ramp")
+
         return t
     
     def calculate_linear_fit(self, x, y):
@@ -232,9 +244,15 @@ class KtauExperiment:
         futek_for_Ktau += [None] * (max_len - len(futek_for_Ktau))
 
         # Create a new directory with the current date and time
-        current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        directory = f'/home/zzefduran/code/newBenchTest/Control_Experiments/Ktau_experiments/{current_time}'
-        os.makedirs(directory, exist_ok=True)
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        daily_directory = f'/home/zzefduran/code/newBenchTest/Control_Experiments/Ktau_experiments/{current_date}'
+        os.makedirs(daily_directory, exist_ok=True)
+
+        # Create a subdirectory for each experiment with a unique timestamp
+        current_time = datetime.now().strftime('%H:%M:%S')
+        experiment_directory = os.path.join(daily_directory, current_time)
+        os.makedirs(experiment_directory, exist_ok=True)
+
 
         # Save the data to a CSV file
         data = {
@@ -246,13 +264,16 @@ class KtauExperiment:
             'FutekforKtau(Nm)': futek_for_Ktau
         }
         df = pd.DataFrame(data)
-        df.to_csv(os.path.join(directory, 'experiment_data.csv'), index=False)
+        df.to_csv(os.path.join(experiment_directory, 'experiment_data.csv'), index=False)
 
         # Save the plots to HTML files
-        pyo.plot(self.fig1, filename=os.path.join(directory, 'torque_comparison.html'), auto_open=False)
-        pyo.plot(self.fig2, filename=os.path.join(directory, 'torque_vs_current.html'), auto_open=False)
+        pyo.plot(self.fig1, filename=os.path.join(experiment_directory, 'torque_comparison.html'), auto_open=False)
+        pyo.plot(self.fig2, filename=os.path.join(experiment_directory, 'torque_vs_current.html'), auto_open=False)
 
-        print(f"Data and plots saved in {directory}")
+        print(f"Data and plots saved in {experiment_directory}")
+
+
+
 
     def run_and_plot_experiment(self, torque_list, futek_client):
         if not self.motor_controller.initialize_drives():

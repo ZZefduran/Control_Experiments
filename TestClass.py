@@ -24,7 +24,7 @@ class MotorController:
         self.ki = ki
         self.kd = kd
         self.ff = ff
-        self.gear_ratio, self.torque_constant = self.retrieve_motor_info(motor_name)
+        self.temperature = self.retrieve_motor_info(motor_name)
         self.motor = None
 
     def set_gains(self):
@@ -90,37 +90,42 @@ class MotorController:
         if result.returncode != 0:
             print(f"Error running mdtool: {result.stderr}")
             return None, None
-        gear_ratio = None
-        torque_constant = None
+        # gear_ratio = None
+        # torque_constant = None
+        Temperature = None ###
         for line in result.stdout.splitlines():
-            if 'gear ratio' in line:
-                gear_ratio = float(line.split(':')[1].strip())
-            elif 'motor torque constant' in line:
-                torque_constant = float(line.split(':')[1].strip().split()[0])
-        return gear_ratio, torque_constant
+            if 'MOSFET temperature' in line:####
+                Temperature = float(line.split(':')[1].strip().split()[0])####
+        return Temperature  ####
 
 
 class KtauExperiment:
     def __init__(self, motor_controller):
         self.motor_controller = motor_controller
-        self.motor_gear_ratio = self.motor_controller.gear_ratio
-        self.motor_torque_constant = self.motor_controller.torque_constant
-        print(f"torque constant is:{self.motor_torque_constant}", f"gear ratio is:{self.motor_gear_ratio}")
+        self.motor_temperature = self.motor_controller.temperature ####
+        print(f"Motor temperatue is:{self.motor_temperature}")
 
-    def retrieve_motor_info(self, motor_id):
+    def retrieve_motor_temperature(self, motor_id):
         result = subprocess.run(['mdtool', 'setup', 'info', str(motor_id)], capture_output=True, text=True)
         if result.returncode != 0:
             print(f"Error running mdtool: {result.stderr}")
-            return None, None
-        gear_ratio = None
-        torque_constant = None
-        for line in result.stdout.splitlines():
-            if 'gear ratio' in line:
-                gear_ratio = float(line.split(':')[1].strip())
-            elif 'motor torque constant' in line:
-                torque_constant = float(line.split(':')[1].strip().split()[0])
-        return gear_ratio, torque_constant
+            return None
 
+        temperature = None
+        print("mdtool output:", result.stdout)  # Print the entire output for debugging
+        
+        for line in result.stdout.splitlines():
+            if 'MOSFET temperature' in line:
+                try:
+                    temperature = float(line.split(':')[1].strip().split()[0])
+                    print(f"Parsed temperature: {temperature}")
+                except ValueError:
+                    print(f"Failed to parse temperature from line: {line}")
+        
+        if temperature is None:
+            print("Temperature not found in the mdtool output.")
+        
+        return temperature
 
     def load_params(self, motor_type):
         # Load the YAML file
@@ -156,9 +161,14 @@ class KtauExperiment:
                 break
             elif self.motor_controller.motor.getTorque() >= torque + 0.5:
                 break
+
+            # temperature_f_print = self.motor_controller.retrieve_motor_info(self.motor_controller.motor.getId())
+            # print(f"Motor temperature is: {temperature_f_print}")
+
             time.sleep(dt)
             count += 1
             t += dt
+
         return t, count
 
     def hold_torque(self, torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count):
@@ -176,11 +186,7 @@ class KtauExperiment:
             print(f"Motor Torque: {motor_torque} | Motor Current: {motor_current} | Futek Torque: {futek_torque}")
             time.sleep(dt)
             t += dt
-            if 2.47 <= time.time() - start_time <= 2.53:
-                I = motor_torque / ((1 / self.motor_gear_ratio) * self.motor_torque_constant)
-                currents_for_Ktau.append(I)
-                Torques_for_Ktau.append(motor_torque * self.motor_gear_ratio)
-                futek_for_Ktau.append(futek_torque * self.motor_gear_ratio)
+
         return t, count
 
     def ramp_down(self, torque, futek_client, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, count):
@@ -219,6 +225,7 @@ class KtauExperiment:
         return motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau
 
     def save_data_and_plots(self, motor_torques, futek_torques, time_values, currents_for_Ktau, Torques_for_Ktau, futek_for_Ktau, new_Ktau):
+        # Pad lists to make them the same length
         max_len = max(len(motor_torques), len(futek_torques), len(time_values), len(currents_for_Ktau), len(Torques_for_Ktau), len(futek_for_Ktau))
         motor_torques += [None] * (max_len - len(motor_torques))
         futek_torques += [None] * (max_len - len(futek_torques))
@@ -226,21 +233,16 @@ class KtauExperiment:
         currents_for_Ktau += [None] * (max_len - len(currents_for_Ktau))
         Torques_for_Ktau += [None] * (max_len - len(Torques_for_Ktau))
         futek_for_Ktau += [None] * (max_len - len(futek_for_Ktau))
-        directory = f'/home/zzefduran/code/newBenchTest/Control_Experiments/Ktau_experiments/{self.current_time}'
-        os.makedirs(directory, exist_ok=True)
-        data = {
-            'Time(s)': time_values,
-            'MotorTorque(Nm)': motor_torques,
-            'FutekTorque(Nm)': futek_torques,
-            'MotorCurrent(A)': currents_for_Ktau,
-            'TorqueforKtau(Nm)': Torques_for_Ktau,
-            'FutekforKtau(Nm)': futek_for_Ktau
-        }
-        df = pd.DataFrame(data)
-        df.to_csv(os.path.join(directory, 'experiment_data.csv'), index=False)
-        pyo.plot(self.fig1, filename=os.path.join(directory, 'torque_comparison.html'), auto_open=False)
-        pyo.plot(self.fig2, filename=os.path.join(directory, 'torque_vs_current.html'), auto_open=False)
-        print(f"Data and plots saved in {directory}")
+
+        # Create a new directory with the current date and time
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        daily_directory = f'/home/zzefduran/code/newBenchTest/Control_Experiments/Ktau_experiments/{current_date}'
+        os.makedirs(daily_directory, exist_ok=True)
+
+        # Create a subdirectory for each experiment with a unique timestamp
+        current_time = datetime.now().strftime('%H:%M:%S')
+        experiment_directory = os.path.join(daily_directory, current_time)
+        os.makedirs(experiment_directory, exist_ok=True)
 
     def run_and_plot_experiment(self, torque_list, futek_client):
         self.current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

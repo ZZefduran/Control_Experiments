@@ -3,14 +3,19 @@ import pyCandle
 from Futek import FutekClient
 from ka3000_serial import ka3000
 import yaml
-import pyCandle
+from motor_power import tongui
 
 from TestClass import MotorController, KtauExperiment
+
+# set up motor supplier
+supplier = tongui()
+supplier.setOutputOn
+time.sleep(2)
 
 
 def load_params(motor_type):
     # Load the YAML file
-    with open('experiment_params.yaml', 'r') as file:
+    with open('Ktau_experiment_params.yaml', 'r') as file:
         all_params = yaml.safe_load(file)
     
     # Extract parameters for the specified motor type
@@ -21,7 +26,7 @@ def load_params(motor_type):
         raise ValueError(f"Motor type {motor_type} not found in YAML file")
 
 # Example motor type
-motor_type = 'x6s2'
+motor_type = 'E85x13'
 
 # Load parameters for the specified motor type
 params = load_params(motor_type)

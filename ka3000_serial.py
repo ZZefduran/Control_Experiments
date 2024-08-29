@@ -91,9 +91,26 @@ class ka3000(object):
     def end_exp(self):
         self.setOutput(False)
 
-# if __name__ == "__main__":
-#     korad = ka3000()
-#     for voltage in [26, 25, 22]:
-#         korad.setOutput(0)
-#         korad.setVolt(voltage)
-# #         time.sleep(1)
+if __name__ == "__main__":
+    korad = ka3000()
+    count = 0 
+    # for voltage in [26, 25, 31]:
+    #     korad.setOutput(0)
+    #     korad.setVolt(voltage)
+    #     time.sleep(1)
+    #     korad.setOutput(1)
+    # while korad.measureCurrent() < 5:
+    #     korad.setCurrent(count)
+    #     print(korad.measureCurrent())
+    #     count += 1
+
+
+
+# korad = ka3000()
+# list = np.arange(0, 4, 0.05)  # Use np.arange to create a range with a float step
+
+# for i in list:
+#     korad.setCurrent(i)
+#     print(korad.measureCurrent())
+#     time.sleep(1)
+

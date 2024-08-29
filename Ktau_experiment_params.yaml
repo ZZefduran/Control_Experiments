@@ -29,8 +29,8 @@ s2:
   torque_list: [0, 3, 6, 9, 12]
   
   
-  E85x13:
-    voltage: 48.0
+E85x13:
+  voltage: 48.0
   control_mode: IMPEDANCE
   kp: 100.0
   kd: 5.0

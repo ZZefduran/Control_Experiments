@@ -141,7 +141,7 @@ class KtauExperiment:
                 ramp_torque = torque * (count / 50)  # Linearly increase torque
                 md.setTorque(ramp_torque)
                 self.collect_data(ramp_torque, futek_client, motor_torques, futek_torques, time_values, t)
-            if abs(self.motor_controller.candle.md80s[0].getTorque() - torque) <= 0.1:
+            if abs(self.motor_controller.candle.md80s[0].getTorque() - torque) <= 0.5:
                 break
             elif self.motor_controller.candle.md80s[0].getTorque() >= torque +0.5:
                 break

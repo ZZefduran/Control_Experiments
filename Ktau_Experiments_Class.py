@@ -245,7 +245,7 @@ class KtauExperiment:
 
         # Create a new directory with the current date and time
         current_date = datetime.now().strftime('%Y-%m-%d')
-        daily_directory = f'/home/zzefduran/code/newBenchTest/Control_Experiments/Ktau_experiments/{current_date}'
+        daily_directory = f'/home/zzefduran/code/newBenchTest/Control_Experiments/Ktau_experiments_results/{current_date}'
         os.makedirs(daily_directory, exist_ok=True)
 
         # Create a subdirectory for each experiment with a unique timestamp

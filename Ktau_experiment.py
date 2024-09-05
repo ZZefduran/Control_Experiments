@@ -19,7 +19,9 @@ baud_rate = pyCandle.CAN_BAUD_2M
 control_mode = pyCandle.IMPEDANCE  # Set to IMPEDANCE mode for torque control
 (kp, kd, ki, ff) = (100.0, 5.0, 0.0, 0.0)
 motor_name = 69
-torque_list =  [i for i in range(0, 130, 20)]   #[i for i in range(0, 35, 5)]  # Desired torques in arbitrary units
+# torque_list =  [i for i in range(0, 10, 5)]   #[i for i in range(0, 35, 5)]  # Desired torques in arbitrary units
+
+torque_list =  [i for i in range(0, 80, 5)]   #[i for i in range(0, 35, 5)]  # Desired torques in arbitrary units
 
 # Initialize the motor controller
 motor_controller = MotorController(voltage, baud_rate, control_mode, kp, kd, ki, ff, motor_name)

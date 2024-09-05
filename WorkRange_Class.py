@@ -10,6 +10,7 @@ import pandas as pd
 from datetime import datetime
 from Futek import FutekClient
 from ka3000_serial import ka3000
+from Futek import FutekClient
 
 
 
@@ -94,7 +95,7 @@ class MaxVelocityExperiment:
         t = 0.0
         dt = 0.01  # Time step
         self.motor_controller.candle.begin()
-        max_vel = 2.2
+        
 
         print("Starting max velocity test...")
         start_time = time.time()
@@ -102,8 +103,8 @@ class MaxVelocityExperiment:
         while time.time() - start_time < 30:
             t += dt
             state = self.motor_controller.get_state()
-            target_velocity = math.exp(0.1 * t) * 0.05
-            if state['Velocity'] < max_vel:
+            target_velocity = 0.05*t  #math.exp(0.1 * t) * 0.05
+            if state['Velocity'] < self.max_vel:
                 self.motor_controller.motor.setTargetVelocity(target_velocity)
             else:
                 now_vel = target_velocity
@@ -111,7 +112,7 @@ class MaxVelocityExperiment:
 
             # Get current state
             self.time_values.append(t)
-            self.velocity_values.append(state['Velocity'])
+            # self.velocity_values.append(state['Velocity'])
 
             print(f"Time: {t:.2f}s | Velocity: {state['Velocity']:.2f}")
 
@@ -129,34 +130,38 @@ class MaxVelocityExperiment:
             self.motor_controller.motor.setTargetVelocity(now_vel)
 
             self.time_values.append(t)
-            self.velocity_values.append(state['Velocity'])
+            # self.velocity_values.append(state['Velocity'])
 
-            print(f"Time: {t:.2f}s | Velocity: {state['Velocity']:.2f}")
+            print(f"Time: {t:.2f}s | Velocity: {state['Velocity']:.2f} ")
             time.sleep(dt)
 
-    def break_motor(self,now_vel, time_values):
+    def break_motor(self,now_vel, time_values, futek_client):
         t = time_values[-1] if time_values else 0.0
         dt = 0.01
         max_curr = 4.5
-        list = np.arange(0, 5, 0.025)
-        i = 0
+        list = np.arange(0, 5, 0.015)
+        i, count, first_torque, last_vel = 0,0,0,self.max_vel
 
         while self.motor_controller.korad.measureCurrent() < max_curr:
             t += dt
             state = self.motor_controller.get_state()
             self.motor_controller.motor.setTargetVelocity(now_vel)
 
+            if count == 0 and futek_client.get_torque() < 0:
+                first_torque = futek_client.get_torque()
             self.time_values.append(t)
             self.velocity_values.append(state['Velocity'])
-            self.velocity.append(state['Velocity'])
-            self.torque_values.append(state['Torque'])
+            
+            if state['Velocity'] < last_vel:
+                last_vel = state['Velocity']
+                self.torque_values.append(futek_client.get_torque() + abs(first_torque))
+                self.velocity.append(state['Velocity'])
             
             self.motor_controller.korad.setCurrent(list[i])
             i+=1
-
-            print(f"Time: {t:.2f}s | Velocity: {state['Velocity']:.2f}")
+            count += 1
+            print(f"Time: {t:.2f}s | Velocity: {state['Velocity']:.2f}| Futrk Torque: {futek_client.get_torque()+ abs(first_torque)} | Motor Torque: {state['Torque']:.2f}")
             time.sleep(dt)
-
             if state['Velocity'] < 0.1:
                 break
 
@@ -166,9 +171,16 @@ class MaxVelocityExperiment:
 
     def save_and_plot_results(self):
         # Save results to a CSV file
-        current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        directory = f'/home/zzefduran/code/newBenchTest/Control_Experiments/MaxVelocityExperiments/{current_time}'
-        os.makedirs(directory, exist_ok=True)
+
+        # Create a new directory with the current date and time
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        daily_directory = f'/home/zzefduran/code/newBenchTest/Control_Experiments/Workrange_exp_result/{current_date}'
+        os.makedirs(daily_directory, exist_ok=True)
+
+        # Create a subdirectory for each experiment with a unique timestamp
+        current_time = datetime.now().strftime('%H:%M:%S')
+        experiment_directory = os.path.join(daily_directory, current_time)
+        os.makedirs(experiment_directory, exist_ok=True)
 
         max_len = max(len(self.time_values), len(self.torque_values), len(self.velocity_values), len(self.velocity))
         self.torque_values += [None] * (max_len - len(self.torque_values))
@@ -184,30 +196,23 @@ class MaxVelocityExperiment:
             
         }
 
-
         df = pd.DataFrame(data)
-        df.to_csv(os.path.join(directory, 'velocity_experiment_data.csv'), index=False)
-
-        # Plot results
-        trace = go.Scatter(x=self.time_values, y=self.velocity_values, mode='lines+markers', name='Actual Velocity')
-        layout = go.Layout(title='Motor Velocity Over Time', xaxis=dict(title='Time (s)'), yaxis=dict(title='Velocity (rad/s)'))
-        fig = go.Figure(data=[trace], layout=layout)
-        pyo.plot(fig, filename=os.path.join(directory, 'velocity_plot.html'), auto_open=False)
+        df.to_csv(os.path.join(experiment_directory, 'velocity_experiment_data.csv'), index=False)
 
         trace2 = go.Scatter(x=self.velocity, y=self.torque_values, mode='lines+markers', name='Actual Velocity')
         layout2 = go.Layout(title='Motor Velocity while braking', xaxis=dict(title='Velocity (rad/s)'), yaxis=dict(title='Torque (Nm)'))
         fig = go.Figure(data=[trace2], layout=layout2)
-        pyo.plot(fig, filename=os.path.join(directory, 'velocity_plot.html'), auto_open=False)
+        pyo.plot(fig, filename=os.path.join(experiment_directory, 'velocity_plot.html'), auto_open=False)
 
-        print(f"Data and plots saved in {directory}")
+        print(f"Data and plots saved in {experiment_directory}")
 
 
-    def run_experiment(self):
+    def run_experiment(self,futek_client):
         self.motor_controller.korad.setOutput(1)
         self.motor_controller.korad.setCurrent(0)
         now_vel = self.ramp_up()
         self.keep_vel(self.time_values, now_vel)
-        self.break_motor(now_vel, self.time_values)
+        self.break_motor(now_vel, self.time_values,futek_client)
         self.motor_controller.candle.end()
 
 
@@ -217,10 +222,13 @@ if __name__ == "__main__":
     # Define motor parameters
     (kp, kd, ki, ff) = (100.0, 5.0, 0.02, 0.0)
     motor_name = 69
-    max_vel = 1.8
+    max_vel = 2.2
 
     # Initialize the motor controller
     motor_controller = MotorController(kp, kd, ki, ff, motor_name)
+
+    # Initialize the Futek sensor
+    futek_client = FutekClient()
 
     # Setup power supply
     motor_controller.setup_power_supply()
@@ -229,7 +237,7 @@ if __name__ == "__main__":
     if motor_controller.initialize_drive():
         # Run the max velocity experiment
         max_velocity_experiment = MaxVelocityExperiment(motor_controller, max_vel)
-        max_velocity_experiment.run_experiment()  # Run for 30 seconds
+        max_velocity_experiment.run_experiment(futek_client)  # Run for 30 seconds
         max_velocity_experiment.save_and_plot_results()
 
     # Shutdown the motor controller

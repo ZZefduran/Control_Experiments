@@ -184,6 +184,7 @@ class MaxVelocityExperiment:
 
         data = {
             
+            
             'Torque(Nm)': self.torque_values,
             'Brake_Velocity(rad/s)': self.velocity,
             'All_exp_Velocity(rad/s)': self.all_exp_velocity

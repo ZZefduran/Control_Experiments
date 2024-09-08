@@ -1,0 +1,75 @@
+## exp configuration ##
+
+# motor #
+exp_type: 'WORK_RANGE'
+motor_name: 63100_mentee_small
+# motor_name: 63100_mentee_omris
+
+ktau: 0.1
+gear_ratio: 1 #flipsky
+
+current_bias: False
+bias: 0
+
+
+# trajectory parameters #
+# trajectory_type: 'traj_all_ramp' #ramping all the way from torques_start to torques_end
+# trajectory_type: 'ramp'   #ramping for each torque from the previous one
+trajectory_type: 'ramp_for_each_torq' #ramping up from and back to zero for each torque 
+# trajectory_type: 'circle' 
+
+slowrampstartend: True  # start and ends with ramping slowly to the start torque value
+iteration_time: 0.1
+peak_time: 0.25
+break_time: 0.1 #2
+ramp_time: 0.05
+
+dt: 0.01
+record_all: True
+
+torques_range:
+  torques_start: 20 #0.5 #10
+  torques_end: 20 #3 #20
+  torques_step: 0.5
+
+
+velocity_range:
+  vel_start: 20
+  vel_end: 20
+  vel_step: 2
+
+voltage_range:
+  vol_start: 28
+  vol_end: 32
+  vol_step: 2
+
+load_range:
+  load_start: 0.0
+  load_interest_start: 0.0
+  load_interest_end: 0.0
+  load_interest_start_2: 0.0
+  load_interest_end_2: 0.0
+  load_end: 0.0
+  load_step_large: 0.001
+  load_step_small: 0.001
+  load_step_small_2: 0.001
+
+
+torque_amplitude: 0
+velocity_amplitude: 0
+
+itertate:
+  exp_iterations: 1
+  concat: True
+
+
+# exp components #
+korad_on: True
+korad_type: 'ka30000'  #'kel103'
+torque_meter_on: True
+motor_on: True
+supply:
+  supply_control: True
+  set_voltage: 20
+
+

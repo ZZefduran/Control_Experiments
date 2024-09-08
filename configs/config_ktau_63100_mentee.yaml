@@ -1,0 +1,60 @@
+## exp configuration ##
+
+# motor #
+exp_type: 'KTAU'  # "DYNAMIC_KTAU" , "VEL_TORQUE"
+motor_name: 63100_mentee_omris
+ktau: 0.1
+gear_ratio: 1 #flipsky
+
+current_bias: False
+bias: -0.032
+
+
+# trajectory parameters #
+# trajectory_type: 'traj_all_ramp' #ramping all the way from torques_start to torques_end
+# trajectory_type: 'ramp'   #ramping for each torque from the previous one
+trajectory_type: 'ramp_for_each_torq' #ramping up from and back to zero for each torque 
+# trajectory_type: 'circle' 
+slowrampstartend: True  # start and ends with ramping slowly to the start torque value
+iteration_time: 3
+peak_time: 2
+break_time: 1 #2
+ramp_time: 1
+
+dt: 0.01
+record_all: True
+
+torques_range:
+  torques_start: 1 #0.5 #10
+  torques_end: 4 #3 #20
+  torques_step: 0.5
+
+load_range:
+  load_start: 0.5
+  load_end: 0.5
+  load_step: 0.05
+
+velocity_range:
+  vel_start: 0
+  vel_end: 0
+  vel_step: 2
+
+
+torque_amplitude: 0
+velocity_amplitude: 0
+
+itertate:
+  exp_iterations: 1
+  concat: True
+
+
+# exp components #
+korad_on: True
+korad_type: 'ka30000'  #'kel103'
+torque_meter_on: True
+motor_on: True
+supply:
+  supply_control: True
+  set_voltage: 48
+
+

@@ -4,11 +4,11 @@ import time
 # Set the IP address and port of the server
 # SERVER_IP = "192.168.33.70"
 # SERVER_IP = "192.168.33.43"
-SERVER_IP = "192.168.33.57"
+# SERVER_IP = "192.168.33.89"
 
 # SERVER_IP = "192.168.30.33"
 # SERVER_IP = "192.168.55.100"
-# SERVER_IP = "192.168.31.58"
+SERVER_IP = "192.168.33.80"
 PORT = 1220
 
 class FutekClient():
@@ -78,9 +78,9 @@ class FutekClient():
         # Close the socket
         self.client_socket.close()
 
-# f=FutekClient()
+# futek = FutekClient()
 # while True:
-#     print(f.get_torque())
+#     print(futek.get_torque())
 # # print(f.zero)
 
 # for i in range(1000):  

@@ -1,0 +1,75 @@
+## exp configuration ##
+
+# motor #
+exp_type: 'WORK_RANGE'
+motor_name: 7010
+# motor_name: 8064
+# motor_name: rmd-x6-s2
+# motor_name: 109
+# ktau: 0.0859 #8064
+ktau: 0.083 #7010
+# ktau: 0.0722 #rmd
+# gear_ratio: 0.016 #8064
+#gear_ratio: 0.111 #rmd-x6-s2
+gear_ratio: 0.100 #7010
+current_bias: False
+bias: -0.032
+ 
+#motor_name: 7010
+# motor_name: RMD
+# trajectory parameters 
+# trajectory_type: 'ramp'
+# trajectory_type: 'ramp'
+trajectory_type: 'ramp_for_each_torq'
+# trajectory_type: 'circle'
+rampupdown: True
+slowrampstartend: True
+iteration_time: 0.5
+dt: 0.01
+
+torques_range:
+  torques_start: 25
+  torques_end: 25
+  torques_step: 5
+
+velocity_range:
+  vel_start: 20.0
+  vel_end: 20.0
+  vel_step: 1.0
+
+load_range:
+  load_start: 0.0
+  load_interest_start: 0.1
+  load_interest_end: 0.3
+  load_interest_start_2: 0.3
+  load_interest_end_2: 0.35
+  load_end: 0.7
+  load_step_large: 0.1
+  load_step_small: 0.02
+  load_step_small_2: 0.005
+
+voltage_range:
+  vol_start: 40
+  vol_end: 48
+  vol_step: 2
+
+
+torque_amplitude: 0
+velocity_amplitude: 0
+
+itertate:
+  exp_iterations: 1
+  concat: True
+
+# exp components #
+korad_on: True
+korad_type: 'ka30000'  #'kel103'
+torque_meter_on: True
+motor_on: True
+supply:
+  supply_control: True
+  set_voltage: 45
+  
+
+
+

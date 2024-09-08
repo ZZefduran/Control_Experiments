@@ -1,0 +1,33 @@
+log_name: Sin_exp
+log_dir: /home/zzefduran/Documents/exp_csvs
+vis_dof: motor
+trajectory:
+  frequency: 30
+  shape: sine
+  # positive_triangle # positive_right_trapezoid # sine # trapezoid
+  plot:
+    show: true
+    save: true
+wave:
+  objective: vel # pos # torque
+  frequency:
+    start: 0.3
+    stop: 0.3
+    step: 0.1
+  separator: 1 #[sec]
+  amplitude_factor:
+    start: 1.0
+    stop: 1.0
+    step: 0.2
+  partial:
+    enable: true
+    total_parts: 2
+    part: 1
+  repeat: 1 #2
+  trapezoid:
+    bounds_ratio: 0.3
+  stomping:
+    amplitude: 0.1 # hip angle [rad]
+
+dof_pos_traj_limit:
+  motor: 1.0

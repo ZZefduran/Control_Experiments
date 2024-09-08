@@ -1,0 +1,42 @@
+## exp configuration ##
+
+# motor #
+exp_type: 'KTAU'
+motor_name: 122
+# motor_name: 7010
+# motor_name: RMD
+# trajectory parameters #
+trajectory_type: 'sine'
+# trajectory_type: 'circle'
+rampupdown: True
+slowrampstartend: True
+iteration_time: 3
+dt: 0.01
+
+torques_range:
+  torques_start: 0
+  torques_end: 100
+  torques_step: 2
+
+load_range:
+  load_start: 1.5
+  load_end: 1.5
+  load_step: 0.5
+
+torque_amplitude: 0
+velocity_amplitude: 0
+
+itertate:
+  exp_iterations: 1
+  concat: True
+
+
+# exp components #
+korad_on: True
+torque_meter_on: True
+motor_on: True
+supply:
+  supply_control: False
+  set_voltage: 45
+
+

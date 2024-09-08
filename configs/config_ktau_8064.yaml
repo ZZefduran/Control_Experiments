@@ -1,0 +1,54 @@
+## exp configuration ##
+
+# motor #
+exp_type: 'KTAU'  # "DYNAMIC_KTAU" , "VEL_TORQUE"
+
+motor_name: 8064
+ktau: 0.0859
+gear_ratio: 0.016
+
+
+# trajectory parameters #
+trajectory_type: 'ramp_for_each_torq' #ramping up from and back to zero for each torque 
+slowrampstartend: True  # start and ends with ramping slowly to the start torque value
+iteration_time: 1
+ramp_time: 1
+peak_time: 1
+break_time: 1
+dt: 0.01
+record_all: False
+
+torques_range:
+  torques_start: 10
+  torques_end: 15
+  torques_step: 5
+
+load_range:
+  load_start: 1.5
+  load_end: 1.5
+  load_step: 0.5
+
+velocity_range:
+  vel_start: 0
+  vel_end: 0
+  vel_step: 2
+
+
+torque_amplitude: 0
+velocity_amplitude: 0
+
+itertate:
+  exp_iterations: 1
+  concat: True
+
+
+# exp components #
+korad_on: True
+korad_type: 'ka30000'  #'kel103'
+torque_meter_on: True
+motor_on: True
+supply:
+  supply_control: True
+  set_voltage: 48
+
+

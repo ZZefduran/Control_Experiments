@@ -1,0 +1,84 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+
+
+
+
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+
+        {
+            "name": "main_exp",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/zzefduran/code/newBenchTest/Control_Experiments/main_exp.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${fileDirname}",
+            "env": {
+                "PYTHONPATH": "${workspaceRoot}"
+            },
+        }
+
+        {
+            "name": "Ktau_exp",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/zzefduran/code/newBenchTest/Control_Experiments/Ktau_experiment.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${fileDirname}",
+            "env": {
+                "PYTHONPATH": "${workspaceRoot}"
+            },
+        },
+        {
+            "name": "Traj_exp",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/zzefduran/code/newBenchTest/Control_Experiments/traj_exp.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${fileDirname}",
+            "env": {
+                "PYTHONPATH": "${workspaceRoot}"
+            },
+        },
+        {
+            "name": "Traj_synthesis",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/zzefduran/code/newBenchTest/Control_Experiments/trajectory_synthesis/src/trajectory_synthesis.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${fileDirname}",
+            "env": {
+                "PYTHONPATH": "${workspaceRoot}"
+            },
+        },
+        {
+            "name": "Sine_exp",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/zzefduran/code/newBenchTest/Control_Experiments/sin_exp.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${fileDirname}",
+            "env": {
+                "PYTHONPATH": "${workspaceRoot}"
+            },
+        },
+
+
+    ]
+}

@@ -2,133 +2,115 @@ import serial
 import time
 import numpy as np
 
-
 class koradUdpComm(object):
 
     def __init__(self):
-        # establishes a communication link between the program and the hardware device
-        self.port = serial.Serial("/dev/ttyACM0",baudrate = 9600,timeout=1)
-        f=0
+        # Try to connect to /dev/ttyACM0
+        try:
+            self.port = serial.Serial("/dev/serial/by-id/usb-Nuvoton_USB_Virtual_COM_001826960458-if00", baudrate=9600, timeout=1)
+            print("Connected to /dev/ttyACM1")
+        except serial.SerialException as e:
+            raise RuntimeError(f"Could not connect to /dev/ttyACM1: {e}")
 
     def close(self):
-        #closes the serial port
-        self.port.close()
+        # Close the serial port
+        if self.port:
+            self.port.close()
 
     def udpSendRecv(self, message):
-
-        # build the message
-        messageb = bytearray()
-        messageb.extend(map(ord, message))
+        messageb = bytearray(map(ord, message))
         messageb.append(0x0a)
 
         startTime = time.time()
-        while 1:
-            sent = self.port.write(messageb)
+        while True:
+            self.port.write(messageb)
             data = self.port.read(1024)
-            if len(data) > 0:
+            if data:
                 return data.decode('utf-8')
-            
             if time.time() - startTime > 3:
-                print ("UDP timeout")
+                print("UDP timeout")
                 return " "
 
     def udpSend(self, message):
-        # build the message
-        messageb = bytearray()
-        messageb.extend(map(ord, message))
+        messageb = bytearray(map(ord, message))
         messageb.append(0x0a)
-
-        sent = self.port.write(messageb)
+        self.port.write(messageb)
 
 class ka3000(object):
 
     def __init__(self):
         self.device = koradUdpComm()
-        # self.setCurrent(0.0)
-
 
     def deviceInfo(self):
-        # askes for the device identification string
         return self.device.udpSendRecv('*IDN?')
-    
+
     def checkDevice(self):
-        # checks if the connected device is the expected
-        if 'KEL103' in self.deviceInfo():
-            return True
-        else:
-            return False
+        return 'KEL103' in self.deviceInfo()
 
     def measureVolt(self):
-        # measure the current voltage 
         s = self.device.udpSendRecv('VSET1?')
         return float(s.strip('V\n'))
-    
+
     def measureSetVolt(self):
-        # measure the current voltage 
         s = self.device.udpSendRecv('VSET1?')
         return float(s.strip('V\n'))
 
     def setVolt(self, voltage):
-        # askes from the power supplier to get to a desired voltage
-        s = self.device.udpSend('VSET1:'+str(voltage))
+        self.device.udpSend(f'VSET1:{voltage}')
         if self.measureSetVolt() != voltage:
-            raise ValueError('Voltage set incorectly on the device')
+            raise ValueError('Voltage set incorrectly on the device')
 
     def measureCurrent(self):
-        # measure the actual current 
         s = self.device.udpSendRecv('ISET1?')
         return float(s.strip('A\n'))
 
     def measureSetCurrent(self):
-        # measure the current that has been set on the power supply
         s = self.device.udpSendRecv('ISET1?')
-        if s == ' ':
-            return 0.0
-        else:
-            return float(s.strip('A\n'))
-        
+        return float(s.strip('A\n')) if s.strip() else 0.0
+
     def setCurrent(self, current):
-        # Gives the supplier a desired current to be in
-        current = np.round(current,4)
-        s = self.device.udpSend('ISET1:'+ str(current))
-        print('Setting Brake Current: ',current, '[A]')
-        # validation that the current current is the right one
+        current = np.round(current, 4)
+        self.device.udpSend(f'ISET1:{current}')
         if self.measureSetCurrent() != current:
-            raise ValueError('Current set incorectly on the device')
+            raise ValueError('Current set incorrectly on the device')
 
     def checkOutput(self):
-        #checks if the output is on or off
         s = self.device.udpSendRecv(':INP?')
-        if 'OFF' in s:
-            return False
-        if 'ON' in s:
-            return True
+        return 'ON' in s
 
-    def setOutputTest(self, state):
-        # Turns the output on or off
-        if state == True:
-            self.device.udpSend('OUT0')
-          
-        if state == False:
-            self.device.udpSend('OUT1')
-          
     def setOutput(self, state):
-        if state == True:
-            self.device.udpSend('OUT1')
-            
-        if state == False:
-            self.device.udpSend('OUT0')
-           
+        command = 'OUT1' if state else 'OUT0'
+        self.device.udpSend(command)
 
     def endComm(self):
-        # colsing the communication
         self.device.close()
 
-
-    # methuds for starting and ending the experiment
     def start_exp(self):
-        self.setOutput(True) 
+        self.setOutput(True)
 
     def end_exp(self):
         self.setOutput(False)
+
+if __name__ == "__main__":
+    korad = ka3000()
+    count = 0 
+    # for voltage in [26, 25, 31]:
+    #     korad.setOutput(0)
+    #     korad.setVolt(voltage)
+    #     time.sleep(1)
+    #     korad.setOutput(1)
+    # while korad.measureCurrent() < 5:
+    #     korad.setCurrent(count)
+    #     print(korad.measureCurrent())
+    #     count += 1
+
+
+
+# korad = ka3000()
+# list = np.arange(0, 4, 0.05)  # Use np.arange to create a range with a float step
+
+# for i in list:
+#     korad.setCurrent(i)
+#     print(korad.measureCurrent())
+#     time.sleep(1)
 

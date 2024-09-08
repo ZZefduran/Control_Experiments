@@ -1,0 +1,57 @@
+## exp configuration ##
+
+# motor #
+exp_type: 'VEL_TORQUE'
+motor_name: 8064
+# motor_name: 7010
+# motor_name: RMD
+ktau: 0.0859
+# gear_ratio: 0.028 #rmd
+gear_ratio: 0.016 #8064
+
+# trajectory parameters #
+trajectory_type: 'const'
+rampupdown: True
+slowrampstartend: True
+iteration_time: 1
+dt: 0.01
+
+torques_range:
+  torques_start: 0
+  torques_end: 0
+  torques_step: 2
+
+velocity_range:
+  vel_start: 10
+  vel_end: 10
+  vel_step: 2
+
+voltage_range:
+  vol_start: 24
+  vol_end: 48
+  vol_step: 5
+
+load_range:
+  load_start: 0.0
+  load_end: 0.7
+  load_interest_start: 0.3
+  load_interest_end: 0.5
+  load_step_large: 0.1
+  load_step_small: 0.005
+
+
+itertate:
+  exp_iterations: 1
+  concat: True
+
+# exp components #
+korad_on: True
+korad_type: 'ka30000'  #'kel103'
+torque_meter_on: True
+motor_on: True
+supply:
+  supply_control: True
+  set_voltage: 45
+  
+
+

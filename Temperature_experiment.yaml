@@ -1,0 +1,42 @@
+AK8064:
+  voltage: 48.0
+  control_mode: IMPEDANCE
+  kp: 100.0
+  kd: 5.0
+  ki: 0.0
+  ff: 0.0
+  motor_name: 100
+  torque_list: [30, 30, 30, 30, 30, 60, 60, 60, 60, 60]
+
+x6s2:
+  voltage: 48.0
+  control_mode: IMPEDANCE
+  kp: 100.0
+  kd: 5.0
+  ki: 0.0
+  ff: 0.0
+  motor_name: 100
+  torque_list: [0, 5, 10, 15, 20, 25, 30]
+
+s2:
+  voltage: 48.0
+  control_mode: IMPEDANCE
+  kp: 100.0
+  kd: 5.0
+  ki: 0.0
+  ff: 0.0
+  motor_name: 100
+  torque_list: [0, 3, 6, 9, 12]
+  
+  
+E85x13:
+  voltage: 48.0
+  control_mode: IMPEDANCE
+  kp: 100.0
+  kd: 5.0
+  ki: 0.0
+  ff: 0.0
+  motor_name: 69
+  torque_list: [30, 30, 30, 30, 30, 80, 80, 80, 80, 80]
+
+

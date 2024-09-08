@@ -84,8 +84,7 @@ class MotorController:
 class MaxVelocityExperiment:
     def __init__(self, motor_controller, max_vel):
         self.motor_controller = motor_controller
-        self.time_values = []
-        self.velocity_values = []
+        self.all_exp_velocity = []
         self.velocity = []
         self.torque_values = []
         self.max_vel = max_vel
@@ -111,16 +110,15 @@ class MaxVelocityExperiment:
                 break
 
             # Get current state
-            self.time_values.append(t)
             # self.velocity_values.append(state['Velocity'])
-
+            self.all_exp_velocity.append(state['Velocity'])
             print(f"Time: {t:.2f}s | Velocity: {state['Velocity']:.2f}")
 
             time.sleep(dt)
         return now_vel
     
-    def keep_vel(self,time_values,now_vel):
-        t = time_values[-1] if time_values else 0.0
+    def keep_vel(self,now_vel):
+        t=0.0
         dt = 0.01
 
         start_time = time.time()
@@ -128,15 +126,13 @@ class MaxVelocityExperiment:
             t += dt
             state = self.motor_controller.get_state()
             self.motor_controller.motor.setTargetVelocity(now_vel)
-
-            self.time_values.append(t)
-            # self.velocity_values.append(state['Velocity'])
+            self.all_exp_velocity.append(state['Velocity'])
 
             print(f"Time: {t:.2f}s | Velocity: {state['Velocity']:.2f} ")
             time.sleep(dt)
 
-    def break_motor(self,now_vel, time_values, futek_client):
-        t = time_values[-1] if time_values else 0.0
+    def break_motor(self,now_vel, futek_client):
+        t=0.0
         dt = 0.01
         max_curr = 4.5
         list = np.arange(0, 5, 0.015)
@@ -146,11 +142,10 @@ class MaxVelocityExperiment:
             t += dt
             state = self.motor_controller.get_state()
             self.motor_controller.motor.setTargetVelocity(now_vel)
+            self.all_exp_velocity.append(state['Velocity']) 
 
             if count == 0 and futek_client.get_torque() < 0:
                 first_torque = futek_client.get_torque()
-            self.time_values.append(t)
-            self.velocity_values.append(state['Velocity'])
             
             if state['Velocity'] < last_vel:
                 last_vel = state['Velocity']
@@ -160,7 +155,7 @@ class MaxVelocityExperiment:
             self.motor_controller.korad.setCurrent(list[i])
             i+=1
             count += 1
-            print(f"Time: {t:.2f}s | Velocity: {state['Velocity']:.2f}| Futrk Torque: {futek_client.get_torque()+ abs(first_torque)} | Motor Torque: {state['Torque']:.2f}")
+            print(f"Velocity: {state['Velocity']:.2f}| Futrk Torque: {futek_client.get_torque()+ abs(first_torque)}")
             time.sleep(dt)
             if state['Velocity'] < 0.1:
                 break
@@ -182,18 +177,16 @@ class MaxVelocityExperiment:
         experiment_directory = os.path.join(daily_directory, current_time)
         os.makedirs(experiment_directory, exist_ok=True)
 
-        max_len = max(len(self.time_values), len(self.torque_values), len(self.velocity_values), len(self.velocity))
+        max_len = max(len(self.torque_values), len(self.all_exp_velocity), len(self.velocity))
         self.torque_values += [None] * (max_len - len(self.torque_values))
-        self.time_values += [None] * (max_len - len(self.time_values))
         self.velocity += [None] * (max_len - len(self.velocity))
-        self.velocity_values += [None] * (max_len - len(self.velocity_values))
+        self.all_exp_velocity += [None] * (max_len - len(self.all_exp_velocity))
 
         data = {
-            'Time(s)': self.time_values,
-            'All Exp Velocity(rad/s)': self.velocity_values,
-            'Torque(Nm)': self.torque_values,
-            'Brake Velocity(rad/s)': self.velocity
             
+            'Torque(Nm)': self.torque_values,
+            'Brake_Velocity(rad/s)': self.velocity,
+            'All_exp_Velocity(rad/s)': self.all_exp_velocity
         }
 
         df = pd.DataFrame(data)
@@ -211,8 +204,8 @@ class MaxVelocityExperiment:
         self.motor_controller.korad.setOutput(1)
         self.motor_controller.korad.setCurrent(0)
         now_vel = self.ramp_up()
-        self.keep_vel(self.time_values, now_vel)
-        self.break_motor(now_vel, self.time_values,futek_client)
+        self.keep_vel(now_vel)
+        self.break_motor(now_vel,futek_client)
         self.motor_controller.candle.end()
 
 
@@ -222,7 +215,7 @@ if __name__ == "__main__":
     # Define motor parameters
     (kp, kd, ki, ff) = (100.0, 5.0, 0.02, 0.0)
     motor_name = 69
-    max_vel = 2.2
+    max_vel = 2.4
 
     # Initialize the motor controller
     motor_controller = MotorController(kp, kd, ki, ff, motor_name)
